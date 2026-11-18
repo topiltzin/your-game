@@ -1,0 +1,70 @@
+// Mode screen: choose 2D (the flat sketch) or 3D (the rendered model), each with a live preview.
+// The 3D preview loads the viewer lazily; its snapshot becomes the runner sprite in 3D mode.
+import { createViewer, loadModelViewer, webglAvailable } from "../character/model-viewer";
+import { presentationAvailability, type Presentation } from "./mode-availability";
+
+export interface ModeChoice {
+  readonly presentation: Presentation;
+  /** Object URL of the 3D snapshot when presentation is "3d", otherwise null. */
+  readonly snapshotUrl: string | null;
+}
+
+export function mountModeScreen(
+  root: HTMLElement,
+  sketchUrl: string,
+  modelUrl: string,
+  onStart: (choice: ModeChoice) => void,
+): void {
+  const webgl = webglAvailable();
+  const threeD = presentationAvailability({ modelStatus: "ready", webgl }, "3d");
+  root.innerHTML = `
+    <section class="panel" aria-labelledby="title">
+      <h1 id="title" class="display">Pick how your hero looks</h1>
+      <div class="modes">
+        <button class="mode-card is-selected" id="mode-2d" type="button" aria-pressed="true">
+          <img src="${sketchUrl}" alt="" />
+          <span>2D sketch</span>
+        </button>
+        <button class="mode-card" id="mode-3d" type="button" aria-pressed="false" ${threeD.available ? "" : "disabled"}>
+          <span class="viewer-slot" id="viewer-slot"></span>
+          <span>3D model</span>
+        </button>
+      </div>
+      ${threeD.available ? "" : `<p class="message">${threeD.available ? "" : threeD.reason}</p>`}
+      <div class="actions"><button class="button button-primary" id="start" type="button">Start running</button></div>
+    </section>`;
+
+  let choice: Presentation = "2d";
+  let snapshotUrl: string | null = null;
+  const card2d = root.querySelector<HTMLButtonElement>("#mode-2d")!;
+  const card3d = root.querySelector<HTMLButtonElement>("#mode-3d")!;
+
+  const select = (next: Presentation) => {
+    choice = next;
+    card2d.classList.toggle("is-selected", next === "2d");
+    card3d.classList.toggle("is-selected", next === "3d");
+    card2d.setAttribute("aria-pressed", String(next === "2d"));
+    card3d.setAttribute("aria-pressed", String(next === "3d"));
+  };
+  card2d.addEventListener("click", () => select("2d"));
+
+  if (threeD.available) {
+    card3d.addEventListener("click", async () => {
+      select("3d");
+      const slot = root.querySelector<HTMLSpanElement>("#viewer-slot")!;
+      if (slot.childElementCount === 0) {
+        await loadModelViewer();
+        const viewer = createViewer(modelUrl, "Your 3D character");
+        slot.append(viewer);
+        viewer.addEventListener("load", async () => {
+          const blob = await (viewer as HTMLElement & { toBlob(o: { mimeType: string }): Promise<Blob> }).toBlob({ mimeType: "image/png" });
+          snapshotUrl = URL.createObjectURL(blob);
+        }, { once: true });
+      }
+    });
+  }
+
+  root.querySelector<HTMLButtonElement>("#start")!.addEventListener("click", () => {
+    onStart({ presentation: choice, snapshotUrl: choice === "3d" ? snapshotUrl : null });
+  });
+}
