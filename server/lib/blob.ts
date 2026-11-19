@@ -1,6 +1,9 @@
-// Private object storage on Cloudflare R2 (S3-compatible API). Uploaded inputs and generated
-// models live here; nothing is public. Credentials come from env and are never logged.
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+// Private object storage in the shared Supabase project (Storage bucket SKETCH_BUCKET, created by
+// supabase/migrations/0002_create_sketch_bucket.sql). Uploaded inputs and generated models live
+// here; the bucket is private and only the server (secret key) reads or writes it.
+import { createSupabase } from "./db.js";
+
+export const SKETCH_BUCKET = "sketch-runner";
 
 export interface BlobStore {
   putPrivate(pathname: string, bytes: Uint8Array, contentType: string): Promise<void>;
@@ -8,43 +11,32 @@ export interface BlobStore {
   deletePrivate(pathname: string): Promise<void>;
 }
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is not set`);
-  return value;
+/** Storage reports a missing object as a 404 (statusCode "404" or a "not found" message). */
+export function isNotFound(error: { statusCode?: string; message?: string }): boolean {
+  return error.statusCode === "404" || /not found/i.test(error.message ?? "");
 }
 
 export function createBlobStore(): BlobStore {
-  const bucket = required("R2_BUCKET");
-  const client = new S3Client({
-    region: "auto",
-    endpoint: required("R2_ENDPOINT_URL"),
-    credentials: {
-      accessKeyId: required("R2_ACCESS_KEY_ID"),
-      secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
-    },
-  });
+  const bucket = createSupabase().storage.from(SKETCH_BUCKET);
 
   return {
     async putPrivate(pathname, bytes, contentType) {
-      await client.send(
-        new PutObjectCommand({ Bucket: bucket, Key: pathname, Body: bytes, ContentType: contentType }),
-      );
+      const { error } = await bucket.upload(pathname, bytes, { contentType, upsert: false });
+      if (error) throw new Error(`storage upload failed: ${error.message}`);
     },
 
     async getPrivate(pathname) {
-      try {
-        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: pathname }));
-        if (!result.Body) return null;
-        return await result.Body.transformToByteArray();
-      } catch (error) {
-        if (error instanceof Error && (error.name === "NoSuchKey" || error.name === "NotFound")) return null;
-        throw error;
+      const { data, error } = await bucket.download(pathname);
+      if (error) {
+        if (isNotFound(error)) return null;
+        throw new Error(`storage download failed: ${error.message}`);
       }
+      return new Uint8Array(await data.arrayBuffer());
     },
 
     async deletePrivate(pathname) {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: pathname }));
+      const { error } = await bucket.remove([pathname]);
+      if (error) throw new Error(`storage delete failed: ${error.message}`);
     },
   };
 }
