@@ -48,10 +48,11 @@ export function mountRunScreen(
     }
   };
   const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
-  session.start();
+  const cue = root.querySelector<HTMLDivElement>("#cue")!;
 
   const controls = attachControls(root, {
     onIntent(intent) {
+      if (session.state === "idle") beginRun();
       if (session.state !== "running") return;
       if (intent === "jump") session.jump();
       else session.slide();
@@ -62,7 +63,14 @@ export function mountRunScreen(
   });
   pauseBtn.addEventListener("click", togglePause);
 
+  /** The first tap or key press starts the run, so the player is never caught off guard. */
+  function beginRun() {
+    session.start();
+    cue.classList.add("is-hidden");
+  }
+
   function togglePause() {
+    if (session.state === "idle") return;
     if (session.state === "running") session.pause();
     else session.resume();
     pauseBtn.textContent = session.state === "paused" ? "Resume" : "Pause";
@@ -71,7 +79,7 @@ export function mountRunScreen(
   const loop: LoopHandle = startLoop(session, () => {
     particles.update(1 / CONFIG.TICK_HZ);
     renderer.draw(session, particles);
-    distanceEl.textContent = String(Math.floor(session.distance));
+    distanceEl.textContent = `${Math.floor(session.distance)} m`;
   });
 
   function finish(distance: number) {

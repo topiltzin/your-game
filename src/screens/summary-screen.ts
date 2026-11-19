@@ -16,7 +16,7 @@ export function mountSummaryScreen(root: HTMLElement, distance: number, handlers
   root.innerHTML = `
     <section class="panel center" aria-labelledby="title">
       <p class="eyebrow">${isNewBest ? "New best" : "Run over"}</p>
-      <h1 id="title" class="display score" aria-label="Distance ${meters}"><span id="score">${meters}</span></h1>
+      <h1 id="title" class="display score" aria-label="Distance ${meters} meters"><span id="score">${meters}</span><span class="unit">m</span></h1>
       <div class="actions">
         <button class="button button-primary" id="again" type="button">Run again</button>
         <button class="button" id="new" type="button">New character</button>
