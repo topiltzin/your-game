@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.vercel
+.swc
+.git
+.env
+.env.*
+*.log
