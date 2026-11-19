@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { waitUntil } from "@vercel/functions";
 import { runCreateModel } from "../../workflows/create-model.js";
 import { createProductionDeps } from "../../workflows/deps.js";
-import { createJobRepository, createSql } from "./db.js";
+import { createJobRepository, createSupabase } from "./db.js";
 import { createJobService, JOB_DEADLINE_MS, type JobService } from "./job-service.js";
 import { generateJobToken } from "./job-token.js";
 import { createRateLimiter } from "./rate-limit.js";
@@ -20,7 +20,7 @@ function env(name: string): string {
 
 /** Service for one request. The IP is hashed with a server-side salt; the raw IP is never stored. */
 export function createJobServiceForRequest(ip: string, baseUrl: string): JobService {
-  const repo = createJobRepository(createSql());
+  const repo = createJobRepository(createSupabase());
   const salt = env("IP_HASH_SALT");
   const secret = env("MODEL_URL_SECRET");
   return createJobService({

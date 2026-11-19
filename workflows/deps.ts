@@ -1,11 +1,11 @@
 // Production adapters for the create-model pipeline: database, private Blob, and the 3D service.
-import { createJobRepository, createSql } from "../server/lib/db.js";
+import { createJobRepository, createSupabase } from "../server/lib/db.js";
 import { createBlobStore } from "../server/lib/blob.js";
 import type { CreateModelDeps } from "./create-model-core.js";
 import { callImageTo3d } from "./sf3d-client.js";
 
 export function createProductionDeps(): CreateModelDeps {
-  const repo = createJobRepository(createSql());
+  const repo = createJobRepository(createSupabase());
   const blob = createBlobStore();
   const endpoint = process.env["SF3D_API_URL"];
   if (!endpoint) throw new Error("SF3D_API_URL is not set");
