@@ -1,5 +1,5 @@
-// Create-model pipeline as plain async logic. The durable workflow (create-model.ts) runs this
-// inside a step; tests run it directly with fakes. Every status write is conditional, so late
+// Create-model pipeline as plain async logic. The background runner (create-model.ts) calls this;
+// tests run it directly with fakes. Every status write is conditional, so late
 // results never overwrite a cancelled or timed-out job.
 
 import { ExternalServiceError } from "./sf3d-client.js";
@@ -42,7 +42,7 @@ export async function createModel(job: CreateModelJob, deps: CreateModelDeps): P
     const timeoutMs = job.deadlineAt.getTime() - deps.now().getTime();
     modelBytes = await deps.generateModel(image, job.textureResolution, timeoutMs);
   } catch (error) {
-    if (!(error instanceof ExternalServiceError)) throw error; // unknown failure: let the workflow retry
+    if (!(error instanceof ExternalServiceError)) throw error; // unknown failure: the runner in create-model.ts marks the job failed
     const timedOut = deps.now() >= job.deadlineAt;
     return timedOut ? finishTerminal(job.id, "timed_out", deps) : finishTerminal(job.id, "failed", deps);
   }

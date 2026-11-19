@@ -128,7 +128,7 @@ async function loadOwned(deps: JobServiceDeps, id: string, token: string): Promi
   return job;
 }
 
-// Lazy timeout: a non-terminal job past its deadline becomes timed_out even if its workflow is gone.
+// Lazy timeout: a non-terminal job past its deadline becomes timed_out even if its pipeline run is gone.
 async function expireIfDue(deps: JobServiceDeps, job: JobRecord): Promise<JobRecord> {
   const deadline = deadlineOf(job).getTime();
   if (!ACTIVE.includes(job.status) || deps.now().getTime() < deadline) return job;

@@ -1,5 +1,5 @@
 // Neon Postgres access for model_jobs. The SQL here implements JobRepository (job-service.ts).
-// Status writes are conditional (WHERE status = ANY(...)), so a late workflow result cannot
+// Status writes are conditional (WHERE status = ANY(...)), so a late pipeline result cannot
 // overwrite a cancelled or timed-out job.
 
 import { neon } from "@neondatabase/serverless";

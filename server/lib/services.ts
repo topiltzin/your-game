@@ -1,7 +1,8 @@
-// Production wiring for the route handlers: database, rate limiter, durable workflow, signed URLs.
+// Production wiring for the route handlers: database, rate limiter, background pipeline, signed URLs.
 import { createHash, randomUUID } from "node:crypto";
-import { start } from "workflow/api";
-import { createModelWorkflow } from "../../workflows/create-model.js";
+import { waitUntil } from "@vercel/functions";
+import { runCreateModel } from "../../workflows/create-model.js";
+import { createProductionDeps } from "../../workflows/deps.js";
 import { createJobRepository, createSql } from "./db.js";
 import { createJobService, JOB_DEADLINE_MS, type JobService } from "./job-service.js";
 import { generateJobToken } from "./job-token.js";
@@ -28,14 +29,18 @@ export function createJobServiceForRequest(ip: string, baseUrl: string): JobServ
     startWorkflow: async (jobId) => {
       const job = await repo.get(jobId);
       if (!job) throw new Error("job vanished before start");
-      await start(createModelWorkflow, [
-        {
-          id: job.id,
-          inputKey: job.inputKey,
-          textureResolution: job.textureResolution,
-          deadlineAt: new Date(job.requestedAt.getTime() + JOB_DEADLINE_MS),
-        },
-      ]);
+      // The pipeline keeps running after the response; runCreateModel never rejects.
+      waitUntil(
+        runCreateModel(
+          {
+            id: job.id,
+            inputKey: job.inputKey,
+            textureResolution: job.textureResolution,
+            deadlineAt: new Date(job.requestedAt.getTime() + JOB_DEADLINE_MS),
+          },
+          createProductionDeps(),
+        ),
+      );
     },
     now: () => new Date(),
     newId: () => randomUUID(),

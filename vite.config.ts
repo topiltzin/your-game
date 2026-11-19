@@ -1,13 +1,11 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
-import { workflow } from "workflow/vite";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 
 // The 3D viewer is kept out of the entry chunk: it is imported lazily on the first 3D view
 // (see src/character/model-viewer.ts), so the game loads without it.
-// workflow() compiles "use workflow" functions (workflows/create-model.ts) so start() can run them.
 export default defineConfig({
-  plugins: [workflow(), localApiPlugin()],
+  plugins: [localApiPlugin()],
   build: {
     target: "es2022",
     rollupOptions: {
