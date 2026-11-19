@@ -1,6 +1,6 @@
 // POST /api/jobs: creates a 3D job for an uploaded input and returns the one-time access token.
-import { clientIp, createJobServiceForRequest } from "../lib/services";
-import { fail, ok, readJson } from "../lib/http";
+import { clientIp, createJobServiceForRequest } from "../../server/lib/services";
+import { fail, ok, readJson } from "../../server/lib/http";
 
 const INPUT_KEY = /^inputs\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
 

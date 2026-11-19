@@ -1,6 +1,6 @@
 // Production adapters for the create-model pipeline: database, private Blob, and the 3D service.
-import { createJobRepository, createSql } from "../api/lib/db";
-import { createBlobStore } from "../api/lib/blob";
+import { createJobRepository, createSql } from "../server/lib/db";
+import { createBlobStore } from "../server/lib/blob";
 import type { CreateModelDeps } from "./create-model-core";
 import { callImageTo3d } from "./sf3d-client";
 

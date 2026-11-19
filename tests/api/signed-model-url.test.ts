@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { signModelUrl, verifyModelUrl } from "../../api/lib/signed-model-url";
+import { signModelUrl, verifyModelUrl } from "../../server/lib/signed-model-url";
 
 const SECRET = "test-secret-at-least-32-bytes-long!!";
 const NOW = new Date("2026-11-18T12:00:00.000Z");

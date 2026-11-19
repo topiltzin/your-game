@@ -1,6 +1,6 @@
 // Parses the { ok, data, error } envelope from contracts/api.md. Anything that is not an envelope
 // is treated as an internal error, so a proxy's HTML page never leaks into the UI.
-import type { ErrorCode } from "../../api/lib/errors";
+import type { ErrorCode } from "../../server/lib/errors";
 
 export class ApiError extends Error {
   readonly code: ErrorCode;

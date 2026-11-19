@@ -1,5 +1,5 @@
 // Client-side image handling: validation, HEIC decoding (lazy), and downscaling before upload.
-import type { ErrorCode } from "../../api/lib/errors";
+import type { ErrorCode } from "../../server/lib/errors";
 
 const ACCEPTED = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 const MAX_BYTES = 10 * 1024 * 1024;

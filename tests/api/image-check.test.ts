@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectImageType } from "../../api/lib/image-check";
+import { detectImageType } from "../../server/lib/image-check";
 
 describe("detectImageType (magic-byte validation)", () => {
   it("accepts JPEG by its FF D8 FF signature", () => {

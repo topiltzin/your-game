@@ -1,8 +1,8 @@
 // GET /api/models/{blob key}?exp=&sig=: serves a private model file after verifying its signed URL.
-import { createBlobStore } from "../lib/blob";
-import { fail } from "../lib/http";
-import { verifyModelUrl } from "../lib/signed-model-url";
-import { MODEL_URL_SECRET } from "../lib/services";
+import { createBlobStore } from "../../server/lib/blob";
+import { fail } from "../../server/lib/http";
+import { verifyModelUrl } from "../../server/lib/signed-model-url";
+import { MODEL_URL_SECRET } from "../../server/lib/services";
 
 export async function GET(request: Request): Promise<Response> {
   const key = verifyModelUrl(new URL(request.url), { secret: MODEL_URL_SECRET(), now: new Date() });

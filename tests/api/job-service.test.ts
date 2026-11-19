@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createJobService, type JobRecord, type JobRepository } from "../../api/lib/job-service";
-import { createRateLimiter } from "../../api/lib/rate-limit";
-import { hashToken } from "../../api/lib/job-token";
+import { createJobService, type JobRecord, type JobRepository } from "../../server/lib/job-service";
+import { createRateLimiter } from "../../server/lib/rate-limit";
+import { hashToken } from "../../server/lib/job-token";
 
 const T0 = new Date("2026-11-18T12:00:00.000Z");
 const TEN_MIN = 10 * 60 * 1000;
