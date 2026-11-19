@@ -46,7 +46,19 @@ export async function callImageTo3d(image: Uint8Array, textureResolution: 512 | 
       retryable: RETRYABLE_STATUS.has(response.status),
     });
   }
-  return new Uint8Array(await response.arrayBuffer());
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  // A 200 with an empty or JSON body is not a model. Storing it made a "ready" job with no image.
+  // Same check as emi_crafting's sf3d.py (GLB_MAGIC).
+  if (!startsWithGlbMagic(bytes)) {
+    throw new ExternalServiceError("3D service returned no model", { retryable: false });
+  }
+  return bytes;
+}
+
+const GLB_MAGIC = [0x67, 0x6c, 0x54, 0x46]; // "glTF"
+
+function startsWithGlbMagic(bytes: Uint8Array): boolean {
+  return GLB_MAGIC.every((byte, index) => bytes[index] === byte);
 }
 
 function isAbort(error: unknown): boolean {

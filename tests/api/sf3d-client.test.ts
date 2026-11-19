@@ -9,13 +9,33 @@ function fetchReturning(response: Response): typeof fetch {
 
 describe("callImageTo3d (external image-to-3D service)", () => {
   it("returns the model bytes on success", async () => {
-    const body = new Uint8Array([7, 7, 7]);
+    const body = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 7, 7, 7]); // "glTF" + payload
     const bytes = await callImageTo3d(IMAGE, 1024, {
       endpoint: "https://example.test/generate-3d/",
       timeoutMs: 5000,
       fetch: fetchReturning(new Response(body, { status: 200 })),
     });
-    expect(Array.from(bytes)).toEqual([7, 7, 7]);
+    expect(Array.from(bytes)).toEqual(Array.from(body));
+  });
+
+  it("rejects a 200 with an empty body instead of storing an empty model", async () => {
+    const error = await callImageTo3d(IMAGE, 1024, {
+      endpoint: "https://example.test/generate-3d/",
+      timeoutMs: 5000,
+      fetch: fetchReturning(new Response(new Uint8Array(0), { status: 200 })),
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ExternalServiceError);
+    expect((error as ExternalServiceError).retryable).toBe(false);
+  });
+
+  it("rejects a 200 with a JSON error body instead of storing it as a model", async () => {
+    const error = await callImageTo3d(IMAGE, 1024, {
+      endpoint: "https://example.test/generate-3d/",
+      timeoutMs: 5000,
+      fetch: fetchReturning(new Response(JSON.stringify({ detail: "bad image" }), { status: 200 })),
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ExternalServiceError);
+    expect((error as ExternalServiceError).retryable).toBe(false);
   });
 
   it("maps a 503 to a retryable ExternalServiceError without copying the body", async () => {
