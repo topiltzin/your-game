@@ -1,10 +1,8 @@
-// Production wiring for the route handlers: database, rate limiter, background pipeline, signed URLs.
+// Production wiring for the route handlers: database, rate limiter, signed URLs. The 3D pipeline
+// runs in the worker (worker/index.ts), not in these requests.
 import { createHash, randomUUID } from "node:crypto";
-import { waitUntil } from "@vercel/functions";
-import { runCreateModel } from "../../workflows/create-model.js";
-import { createProductionDeps } from "../../workflows/deps.js";
 import { createJobRepository, createSupabase } from "./db.js";
-import { createJobService, JOB_DEADLINE_MS, type JobService } from "./job-service.js";
+import { createJobService, type JobService } from "./job-service.js";
 import { generateJobToken } from "./job-token.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { signModelUrl } from "./signed-model-url.js";
@@ -26,22 +24,6 @@ export function createJobServiceForRequest(ip: string, baseUrl: string): JobServ
   return createJobService({
     repo,
     rateLimiter: createRateLimiter({ limit: JOB_LIMIT_PER_HOUR, windowMs: HOUR_MS, countSince: repo.countSince }),
-    startWorkflow: async (jobId) => {
-      const job = await repo.get(jobId);
-      if (!job) throw new Error("job vanished before start");
-      // The pipeline keeps running after the response; runCreateModel never rejects.
-      waitUntil(
-        runCreateModel(
-          {
-            id: job.id,
-            inputKey: job.inputKey,
-            textureResolution: job.textureResolution,
-            deadlineAt: new Date(job.requestedAt.getTime() + JOB_DEADLINE_MS),
-          },
-          createProductionDeps(),
-        ),
-      );
-    },
     now: () => new Date(),
     newId: () => randomUUID(),
     newToken: generateJobToken,

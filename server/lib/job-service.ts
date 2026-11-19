@@ -36,7 +36,6 @@ export interface JobRepository {
 export interface JobServiceDeps {
   readonly repo: JobRepository;
   readonly rateLimiter: RateLimiter;
-  readonly startWorkflow: (jobId: string) => Promise<void>;
   readonly now: () => Date;
   readonly newId: () => string;
   readonly newToken: () => string;
@@ -98,8 +97,8 @@ export function createJobService(deps: JobServiceDeps): JobService {
         requestedAt: now,
         ipHash,
       };
+      // The worker claims queued jobs; the request only records the job.
       await deps.repo.insert(record);
-      await deps.startWorkflow(record.id);
       return { ok: true, job: toPublic(record), accessToken: token };
     },
 

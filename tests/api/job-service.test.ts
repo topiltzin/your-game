@@ -33,19 +33,17 @@ function memoryRepo(): JobRepository & { jobs: Map<string, JobRecord>; countSinc
 
 function setup(now: Date = T0) {
   const repo = memoryRepo();
-  const started: string[] = [];
   let counter = 0;
   const service = createJobService({
     repo,
     rateLimiter: createRateLimiter({ limit: 5, windowMs: 60 * 60 * 1000, countSince: (h, s) => repo.countSince(h, s) }),
-    startWorkflow: async (jobId) => void started.push(jobId),
     now: () => now,
     newId: () => `job-${++counter}`,
     newToken: () => "fixed-token-256bit",
     ipHash: () => "ip-hash-1",
     signModelUrl: (key) => `https://blob.test/${key}?sig=1`,
   });
-  return { repo, service, started };
+  return { repo, service };
 }
 
 describe("POST /api/jobs (createJob)", () => {
@@ -62,7 +60,7 @@ describe("POST /api/jobs (createJob)", () => {
   });
 
   it("creates a queued job with a 10-minute deadline and returns the token once", async () => {
-    const { service, repo, started } = setup();
+    const { service, repo } = setup();
     const r = await service.createJob({ inputKey: "inputs/a.png", textureResolution: 1024, disclosureAccepted: true });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -70,7 +68,7 @@ describe("POST /api/jobs (createJob)", () => {
     expect(new Date(r.job.deadlineAt).getTime() - new Date(r.job.requestedAt).getTime()).toBe(TEN_MIN);
     expect(r.accessToken).toBe("fixed-token-256bit");
     expect(repo.jobs.get(r.job.id)!.tokenHash).toBe(hashToken("fixed-token-256bit"));
-    expect(started).toEqual([r.job.id]);
+    expect(repo.jobs.get(r.job.id)!.status).toBe("queued");
   });
 
   it("stores only a hash of the IP, never the raw IP", async () => {
@@ -145,7 +143,6 @@ function createJobServiceAt(repo: JobRepository, now: Date) {
   return createJobService({
     repo,
     rateLimiter: createRateLimiter({ limit: 5, windowMs: 60 * 60 * 1000, countSince: async () => 0 }),
-    startWorkflow: async () => undefined,
     now: () => now,
     newId: () => "unused",
     newToken: () => "unused",

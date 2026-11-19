@@ -4,15 +4,16 @@ import { createBlobStore } from "../server/lib/blob.js";
 import type { CreateModelDeps } from "./create-model-core.js";
 import { callImageTo3d } from "./sf3d-client.js";
 
-export function createProductionDeps(): CreateModelDeps {
+export function createProductionDeps(sf3dEndpoint: string | undefined = process.env["SF3D_API_URL"]): CreateModelDeps {
   const repo = createJobRepository(createSupabase());
   const blob = createBlobStore();
-  const endpoint = process.env["SF3D_API_URL"];
+  const endpoint = sf3dEndpoint;
   if (!endpoint) throw new Error("SF3D_API_URL is not set");
 
   return {
     now: () => new Date(),
-    markProcessing: (jobId) => repo.update(jobId, ["queued"], { status: "processing" }),
+    // The claim (claim_model_job) already moved the job to processing; accept that status too.
+    markProcessing: (jobId) => repo.update(jobId, ["queued", "processing"], { status: "processing" }),
     async readInput(inputKey) {
       const bytes = await blob.getPrivate(inputKey);
       if (!bytes) throw new Error("input missing");

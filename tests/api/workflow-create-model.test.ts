@@ -99,4 +99,49 @@ describe("createModel (durable create-model core)", () => {
     expect(state.status).toBe("timed_out");
     expect(state.failureReason).toBe("TIMED_OUT");
   });
+
+  it("runs a job the claim already moved to processing", async () => {
+    // The worker claims with claim_model_job, which sets processing. markProcessing must accept
+    // that status (it updates from queued or processing), or the job would be skipped.
+    const { deps, state, calls } = fakeDeps({
+      markProcessing: async () => {
+        calls.push("markProcessing");
+        return true;
+      },
+    });
+    state.status = "processing";
+    const outcome = await createModel(JOB, deps);
+    expect(outcome).toBe("ready");
+    expect(calls[0]).toBe("markProcessing");
+  });
+
+  it("fails a model larger than 50 MB with RESULT_TOO_LARGE and does not store it", async () => {
+    const stored: string[] = [];
+    const { deps, state } = fakeDeps({
+      generateModel: async () => new Uint8Array(52_428_801),
+      storeModel: async (jobId) => {
+        stored.push(jobId);
+        return `models/${jobId}.glb`;
+      },
+    });
+    const outcome = await createModel(JOB, deps);
+    expect(outcome).toBe("failed");
+    expect(state.failureReason).toBe("RESULT_TOO_LARGE");
+    expect(stored).toEqual([]);
+  });
+
+  it("marks timed_out when the 3D service fails after the deadline has passed", async () => {
+    // createModel reads the clock three times on this path: the start check, the timeout
+    // calculation, and the check inside the catch. The first two are before the deadline.
+    let clockReads = 0;
+    const { deps, state } = fakeDeps({
+      now: () => (++clockReads <= 2 ? new Date("2026-11-18T12:01:00.000Z") : new Date("2026-11-18T12:11:00.000Z")),
+      generateModel: async () => {
+        throw new ExternalServiceError("3D service timed out", { retryable: false });
+      },
+    });
+    const outcome = await createModel(JOB, deps);
+    expect(outcome).toBe("timed_out");
+    expect(state.failureReason).toBe("TIMED_OUT");
+  });
 });

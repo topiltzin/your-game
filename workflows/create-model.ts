@@ -1,6 +1,5 @@
-// Runs the create-model pipeline for one job. Started in the background by server/lib/services.ts
-// (via waitUntil), so it never rejects: an unexpected error marks the job failed instead of
-// escaping into the platform, because there is no retry layer around it.
+// Runs the create-model pipeline for one job. The worker (worker/index.ts) calls it for each claimed
+// job. It never rejects: an unexpected error marks the job failed, because there is no retry layer.
 import { createModel, type CreateModelDeps, type CreateModelJob, type CreateModelOutcome } from "./create-model-core.js";
 
 export async function runCreateModel(job: CreateModelJob, deps: CreateModelDeps): Promise<CreateModelOutcome> {
