@@ -38,8 +38,12 @@ export function mountRunScreen(
     const runner = session.runnerState;
     if (event.type === "land" || event.type === "jump") burst(particles, 6, 0, runner.y);
     if (event.type === "slide") burst(particles, 3, event.distance, 0);
+    if (event.type === "milestone") {
+      burst(particles, 12, event.distance, 60, "accent");
+      if (!reducedMotion) pulse(distanceEl);
+    }
     if (event.type === "crash") {
-      burst(particles, 24, event.distance, 40);
+      burst(particles, 24, event.distance, 40, "accent");
       finish(session.distance);
     }
   };
@@ -93,8 +97,16 @@ function resize(canvas: HTMLCanvasElement): void {
   canvas.height = Math.round(canvas.clientHeight * dpr) || 1280;
 }
 
-function burst(particles: ParticlePool, count: number, x: number, y: number): void {
+/** Brief scale bump on the distance readout when a milestone is passed. Transform only. */
+function pulse(element: HTMLElement): void {
+  element.animate(
+    [{ transform: "scale(1)" }, { transform: "scale(1.14)" }, { transform: "scale(1)" }],
+    { duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
+  );
+}
+
+function burst(particles: ParticlePool, count: number, x: number, y: number, color: "ink" | "accent" = "ink"): void {
   for (let i = 0; i < count; i++) {
-    particles.spawn({ x, y, vx: (Math.random() - 0.5) * 300, vy: Math.random() * 260, life: 0.5 });
+    particles.spawn({ x, y, vx: (Math.random() - 0.5) * 300, vy: Math.random() * 260, life: 0.5, color });
   }
 }

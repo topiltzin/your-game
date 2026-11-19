@@ -5,6 +5,8 @@ export interface Particle {
   vy: number;
   /** Seconds left to live. */
   life: number;
+  /** Ink dust by default; accent for impact bursts. */
+  color?: "ink" | "accent";
 }
 
 export interface PoolOptions {

@@ -10,6 +10,15 @@ export async function enter(element: HTMLElement): Promise<void> {
   await element.animate([from, to], { duration: 260, easing: EASE_OUT, fill: "both" }).finished;
 }
 
+/**
+ * Fades the outgoing screen. The animation is cancelled once it finishes: with `fill: both` the
+ * root would stay at opacity 0 and the next screen would never be visible.
+ */
 export async function leave(element: HTMLElement): Promise<void> {
-  await element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: "ease-out", fill: "both" }).finished;
+  const animation = element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: "ease-out", fill: "both" });
+  try {
+    await animation.finished;
+  } finally {
+    animation.cancel();
+  }
 }
