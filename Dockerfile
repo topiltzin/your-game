@@ -1,10 +1,10 @@
 FROM node:24-slim
 
-ENV NODE_ENV=production
 WORKDIR /app
 
 # Install dependencies first so this layer is reused when only source code changes.
-# Dev dependencies stay in: the worker runs through tsx.
+# Dev dependencies must stay in (do not set NODE_ENV=production here): the worker runs through tsx,
+# and npm ci skips devDependencies when NODE_ENV is production.
 COPY package.json package-lock.json ./
 RUN npm ci
 
