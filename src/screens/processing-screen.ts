@@ -11,6 +11,8 @@ export interface ProcessingHandlers {
 
 const POLL_MS = 5000;
 const POLL_MAX_MS = 10000;
+/** A phone that locks or drops signal can miss several polls. The job keeps running on the worker, so keep trying for about 5 minutes. */
+const MAX_NETWORK_RETRIES = 30;
 
 export function mountProcessingScreen(root: HTMLElement, jobId: string, token: string, handlers: ProcessingHandlers): () => void {
   root.innerHTML = `
@@ -24,11 +26,13 @@ export function mountProcessingScreen(root: HTMLElement, jobId: string, token: s
   let timer: number | undefined;
   let interval = POLL_MS;
   let stopped = false;
+  let networkFailures = 0;
 
   const poll = async () => {
     try {
       const job = await getJob(jobId, token);
       if (stopped) return;
+      networkFailures = 0;
       if (job.status === "ready" && job.modelUrl) return handlers.onReady(job.modelUrl);
       if (job.status === "failed" || job.status === "timed_out") return finishWith(job);
       if (job.status === "cancelled") return handlers.onCancelled();
@@ -37,8 +41,14 @@ export function mountProcessingScreen(root: HTMLElement, jobId: string, token: s
       timer = window.setTimeout(poll, interval);
     } catch (error) {
       if (stopped) return;
-      const retryable = error instanceof ApiError ? error.retryable : true;
-      handlers.onFailed(error instanceof Error ? error.message : "Something went wrong. Try again.", retryable);
+      if (error instanceof ApiError) return handlers.onFailed(error.message, error.retryable);
+      // Not an API answer: the request never got a response (network drop, sleeping phone). Retry.
+      networkFailures += 1;
+      if (networkFailures > MAX_NETWORK_RETRIES) {
+        return handlers.onFailed("Lost the connection while checking your model. Check your signal and try again.", true);
+      }
+      status.textContent = "Connection dropped. Reconnecting…";
+      timer = window.setTimeout(poll, interval);
     }
   };
 
