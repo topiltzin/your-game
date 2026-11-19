@@ -1,4 +1,4 @@
-import { ERROR_TABLE, errorBody, type ErrorCode } from "./errors";
+import { ERROR_TABLE, errorBody, type ErrorCode } from "./errors.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 

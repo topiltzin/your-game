@@ -2,7 +2,7 @@
 // inside a step; tests run it directly with fakes. Every status write is conditional, so late
 // results never overwrite a cancelled or timed-out job.
 
-import { ExternalServiceError } from "./sf3d-client";
+import { ExternalServiceError } from "./sf3d-client.js";
 
 export interface CreateModelJob {
   readonly id: string;

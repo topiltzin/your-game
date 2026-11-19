@@ -2,9 +2,9 @@
 // The browser downscales and orients the image first, so the body stays under the 4.5 MB
 // function payload limit (contracts/api.md records this).
 import { randomUUID } from "node:crypto";
-import { createBlobStore } from "../../server/lib/blob";
-import { detectImageType } from "../../server/lib/image-check";
-import { fail, ok } from "../../server/lib/http";
+import { createBlobStore } from "../../server/lib/blob.js";
+import { detectImageType } from "../../server/lib/image-check.js";
+import { fail, ok } from "../../server/lib/http.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const EXTENSION = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;

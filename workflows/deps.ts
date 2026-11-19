@@ -1,8 +1,8 @@
 // Production adapters for the create-model pipeline: database, private Blob, and the 3D service.
-import { createJobRepository, createSql } from "../server/lib/db";
-import { createBlobStore } from "../server/lib/blob";
-import type { CreateModelDeps } from "./create-model-core";
-import { callImageTo3d } from "./sf3d-client";
+import { createJobRepository, createSql } from "../server/lib/db.js";
+import { createBlobStore } from "../server/lib/blob.js";
+import type { CreateModelDeps } from "./create-model-core.js";
+import { callImageTo3d } from "./sf3d-client.js";
 
 export function createProductionDeps(): CreateModelDeps {
   const repo = createJobRepository(createSql());

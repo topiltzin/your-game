@@ -1,12 +1,12 @@
 // Production wiring for the route handlers: database, rate limiter, durable workflow, signed URLs.
 import { createHash, randomUUID } from "node:crypto";
 import { start } from "workflow/api";
-import { createModelWorkflow } from "../../workflows/create-model";
-import { createJobRepository, createSql } from "./db";
-import { createJobService, JOB_DEADLINE_MS, type JobService } from "./job-service";
-import { generateJobToken } from "./job-token";
-import { createRateLimiter } from "./rate-limit";
-import { signModelUrl } from "./signed-model-url";
+import { createModelWorkflow } from "../../workflows/create-model.js";
+import { createJobRepository, createSql } from "./db.js";
+import { createJobService, JOB_DEADLINE_MS, type JobService } from "./job-service.js";
+import { generateJobToken } from "./job-token.js";
+import { createRateLimiter } from "./rate-limit.js";
+import { signModelUrl } from "./signed-model-url.js";
 
 const JOB_LIMIT_PER_HOUR = 5;
 const HOUR_MS = 60 * 60 * 1000;

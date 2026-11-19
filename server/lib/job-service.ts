@@ -2,10 +2,10 @@
 // Pure logic over injected dependencies: the database, clock, and external calls are passed in,
 // so the rules are tested without a network or a database.
 
-import type { ErrorCode } from "./errors";
-import { ERROR_TABLE } from "./errors";
-import type { RateLimiter } from "./rate-limit";
-import { hashToken, verifyToken } from "./job-token";
+import type { ErrorCode } from "./errors.js";
+import { ERROR_TABLE } from "./errors.js";
+import type { RateLimiter } from "./rate-limit.js";
+import { hashToken, verifyToken } from "./job-token.js";
 
 export type JobStatus = "queued" | "processing" | "ready" | "failed" | "timed_out" | "cancelled";
 const ACTIVE: JobStatus[] = ["queued", "processing"];

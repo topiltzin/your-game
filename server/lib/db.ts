@@ -3,7 +3,7 @@
 // overwrite a cancelled or timed-out job.
 
 import { neon } from "@neondatabase/serverless";
-import type { JobRecord, JobRepository, JobStatus } from "./job-service";
+import type { JobRecord, JobRepository, JobStatus } from "./job-service.js";
 
 type Sql = ReturnType<typeof neon>;
 
