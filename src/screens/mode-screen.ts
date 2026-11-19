@@ -57,6 +57,8 @@ export function mountModeScreen(
         const viewer = createViewer(modelUrl, "Your 3D character");
         slot.append(viewer);
         viewer.addEventListener("load", async () => {
+          // A snapshot taken at the load event can be black: wait for lit frames to be drawn first.
+          await nextFrames(2);
           const blob = await (viewer as HTMLElement & { toBlob(o: { mimeType: string }): Promise<Blob> }).toBlob({ mimeType: "image/png" });
           snapshotUrl = URL.createObjectURL(blob);
         }, { once: true });
@@ -66,5 +68,13 @@ export function mountModeScreen(
 
   root.querySelector<HTMLButtonElement>("#start")!.addEventListener("click", () => {
     onStart({ presentation: choice, snapshotUrl: choice === "3d" ? snapshotUrl : null });
+  });
+}
+
+/** Resolves after `count` animation frames, so the browser has drawn them. */
+function nextFrames(count: number): Promise<void> {
+  return new Promise((resolve) => {
+    const step = (remaining: number) => (remaining <= 0 ? resolve() : requestAnimationFrame(() => step(remaining - 1)));
+    step(count);
   });
 }

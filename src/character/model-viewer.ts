@@ -32,6 +32,9 @@ export function createViewer(src: string, label: string): HTMLElement {
   viewer.setAttribute("camera-controls", "");
   viewer.setAttribute("auto-rotate", "");
   viewer.setAttribute("shadow-intensity", "0.6");
+  // Built-in studio lighting, so the model is never rendered in an unlit (black) scene.
+  viewer.setAttribute("environment-image", "neutral");
+  viewer.setAttribute("exposure", "1");
   viewer.setAttribute("alt", label);
   viewer.className = "viewer";
   return viewer;
