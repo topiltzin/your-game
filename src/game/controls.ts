@@ -24,6 +24,11 @@ export function attachControls(target: HTMLElement, handlers: ControlHandlers): 
     start = { x: event.clientX, y: event.clientY, t: performance.now() };
   };
   const onUp = (event: PointerEvent) => {
+    // A tap on a button (Pause) is for that button, not a jump.
+    if (event.target instanceof Element && event.target.closest("button")) {
+      start = null;
+      return;
+    }
     if (!start) return;
     const gesture = {
       dx: event.clientX - start.x,
