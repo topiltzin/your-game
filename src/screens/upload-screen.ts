@@ -19,6 +19,7 @@ export function mountUploadScreen(root: HTMLElement, onReady: (character: Charac
   const best = getBest(localStore());
   root.innerHTML = `
     <section class="panel" aria-labelledby="title">
+      <p class="wordmark">Sketch Runner</p>
       <h1 id="title" class="display">Draw a hero. Run with it.</h1>
       <p class="lede">Upload a sketch or draw one. We turn it into a 3D model you can run as.</p>
       ${best ? `<p class="best">Best run: <strong>${Math.floor(best.distance)}</strong></p>` : ""}

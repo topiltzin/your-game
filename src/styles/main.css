@@ -10,7 +10,8 @@
   --radius-card: 20px;
   --radius-pill: 999px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  /* No web font is shipped, so use the platform's rounded UI face: it looks deliberate on every phone. */
+  --display: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Segoe UI", system-ui, sans-serif;
   --body: system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light dark;
 }
@@ -43,6 +44,29 @@ body {
   font-family: var(--body);
 }
 
+/* The run's ground, echoed on every screen: a firm ink line with sketch hatching beneath it. */
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  z-index: -1;
+  pointer-events: none;
+  border-top: 3px solid var(--ink);
+  background: repeating-linear-gradient(-60deg, color-mix(in srgb, var(--ink) 16%, transparent) 0 2px, transparent 2px 14px);
+}
+.wordmark {
+  margin: 0;
+  justify-self: start;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
 .skip-link {
   position: absolute;
   left: 16px;
@@ -54,7 +78,8 @@ body {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 16px;
+  /* Extra right and bottom room keeps the panel's offset shadow on screen. */
+  padding: 16px 24px 24px 16px;
 }
 
 .panel {
@@ -162,6 +187,9 @@ kbd {
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
 /* The primary button has a physical base that squashes down when pressed. */
 .button-primary {
+  min-height: 52px;
+  padding: 14px 28px;
+  font-size: 1.05rem;
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
