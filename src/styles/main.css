@@ -1,33 +1,42 @@
-/* Tokens: one accent, paper ground, ink text. Durations and easing are shared by every screen. */
+/* Tokens: off-white paper, one dark ink, grey secondary text. Shared by every screen. */
 :root {
-  --paper: #f6f3ec;
-  --ink: #1b1b1f;
-  --accent: #e2432f;
-  --accent-depth: color-mix(in srgb, var(--accent) 62%, #000);
-  /* Ink text on the coral accent clears WCAG AA (about 5.6:1); white does not (about 3.8:1). */
-  --on-accent: #15141a;
-  --muted: #5d5a55;
-  --radius-card: 20px;
+  --paper: #f7f7f7;
+  --ink: #3c3c3c;
+  --line: #d4d4d4;
+  --accent: #3c3c3c;
+  --accent-depth: #111111;
+  --on-accent: #f7f7f7;
+  --muted: #6b6b6b;
+  --radius-card: 16px;
   --radius-pill: 999px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  /* No web font is shipped, so use the platform's rounded UI face: it looks deliberate on every phone. */
-  --display: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Segoe UI", system-ui, sans-serif;
-  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* No web font is shipped: system sans for titles, system mono for the score. */
+  --display: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #17161a;
-    --ink: #f6f3ec;
-    --muted: #b8b4ad;
+    --paper: #1f1f1f;
+    --ink: #ececec;
+    --line: #3d3d3d;
+    --accent: #ececec;
+    --accent-depth: #bdbdbd;
+    --on-accent: #1f1f1f;
+    --muted: #a3a3a3;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #17161a;
-  --ink: #f6f3ec;
-  --muted: #b8b4ad;
+  --paper: #1f1f1f;
+  --ink: #ececec;
+  --line: #3d3d3d;
+  --accent: #ececec;
+  --accent-depth: #bdbdbd;
+  --on-accent: #1f1f1f;
+  --muted: #a3a3a3;
 }
 
 * { box-sizing: border-box; }
@@ -38,33 +47,8 @@ body {
   margin: 0;
   min-height: 100dvh;
   background-color: var(--paper);
-  background-image: radial-gradient(color-mix(in srgb, var(--ink) 10%, transparent) 1px, transparent 1.5px);
-  background-size: 22px 22px;
   color: var(--ink);
   font-family: var(--body);
-}
-
-/* The run's ground, echoed on every screen: a firm ink line with sketch hatching beneath it. */
-body::after {
-  content: "";
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 56px;
-  z-index: -1;
-  pointer-events: none;
-  border-top: 3px solid var(--ink);
-  background: repeating-linear-gradient(-60deg, color-mix(in srgb, var(--ink) 16%, transparent) 0 2px, transparent 2px 14px);
-}
-.wordmark {
-  margin: 0;
-  justify-self: start;
-  font-family: var(--display);
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--ink);
 }
 
 .skip-link {
@@ -78,29 +62,37 @@ body::after {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  /* Extra right and bottom room keeps the panel's offset shadow on screen. */
-  padding: 16px 24px 24px 16px;
+  padding: 16px;
 }
 
 .panel {
-  width: min(560px, 100%);
+  width: min(520px, 100%);
   display: grid;
   gap: 16px;
-  padding: 24px;
-  border: 2px solid var(--ink);
+  padding: 28px 24px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--paper);
-  box-shadow: 6px 6px 0 var(--accent);
 }
 .panel.center { justify-items: center; text-align: center; }
 
+.wordmark {
+  margin: 0;
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .display {
   font-family: var(--display);
-  font-size: clamp(2.25rem, 6.5vw, 3.25rem);
-  font-weight: 800;
-  line-height: 1.02;
+  font-size: clamp(1.9rem, 6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
   margin: 0;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .lede, .hint, .message { color: var(--muted); margin: 0; line-height: 1.5; max-width: 60ch; text-wrap: pretty; }
@@ -108,29 +100,31 @@ body::after {
   margin: 0;
   justify-self: center;
   width: fit-content;
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .score {
-  font-size: clamp(4.5rem, 18vw, 8.5rem);
+  font-family: var(--mono);
+  font-size: clamp(4rem, 16vw, 7rem);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 0.95;
   animation: score-in 520ms var(--ease-out) both;
 }
 @keyframes score-in {
-  from { opacity: 0; transform: scale(0.9) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.best strong { color: var(--accent); }
+.best strong { color: var(--ink); font-family: var(--mono); }
 .unit { font-size: 0.32em; font-weight: 700; margin-left: 0.12em; color: var(--muted); }
 
-/* Start cue: covers the field until the first tap or key press, then fades out. */
+/* Start cue: a card over the field until the first tap or key press, then fades out. */
 .run-cue {
   position: absolute;
   inset: 0;
@@ -140,7 +134,7 @@ body::after {
   gap: 12px;
   padding: 24px;
   text-align: center;
-  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
   transition: opacity 220ms var(--ease-out), visibility 0s linear 0s;
 }
 .run-cue.is-hidden {
@@ -148,22 +142,23 @@ body::after {
   visibility: hidden;
   transition: opacity 220ms var(--ease-out), visibility 0s linear 220ms;
 }
-.run-cue .display { font-size: clamp(2.5rem, 10vw, 4rem); }
+.run-cue .display { font-size: clamp(1.9rem, 7vw, 2.4rem); }
 /* Content rises in with a short stagger (30-80 ms between items). The exit is faster than the entrance. */
 .run-cue > * { animation: cue-rise 320ms var(--ease-out) both; }
 .run-cue > :nth-child(2) { animation-delay: 60ms; }
 .run-cue > :nth-child(3) { animation-delay: 120ms; }
 @keyframes cue-rise {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.controls { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; color: var(--muted); }
+.controls { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; color: var(--muted); text-align: left; }
 kbd {
   font: inherit;
-  font-weight: 700;
-  padding: 2px 10px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: 0.85em;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   background: var(--paper);
   color: var(--ink);
 }
@@ -172,47 +167,42 @@ kbd {
 
 .button {
   appearance: none;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-weight: 700;
-  padding: 12px 22px;
+  font-weight: 600;
+  padding: 10px 20px;
   min-height: 44px;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
 }
 .button:active:not(:disabled) { transform: scale(0.97); }
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
-/* The primary button has a physical base that squashes down when pressed. */
 .button-primary {
   min-height: 52px;
   padding: 14px 28px;
-  font-size: 1.05rem;
-  background: var(--accent);
+  font-size: 1.02rem;
   border-color: var(--accent);
+  background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 4px 0 var(--accent-depth);
 }
-.button-primary:active:not(:disabled) {
-  transform: translateY(3px) scale(0.99);
-  box-shadow: 0 1px 0 var(--accent-depth);
-}
-.button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.button-primary:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+.button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
 .draw { display: grid; gap: 12px; justify-items: center; }
 #pad {
   width: min(420px, 100%);
   aspect-ratio: 1;
-  border: 2px dashed var(--ink);
+  border: 1px dashed var(--muted);
   border-radius: var(--radius-card);
   touch-action: none;
   background: #fff;
 }
 
 .preview { display: grid; gap: 12px; justify-items: center; }
-.preview img { max-width: 220px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: #fff; }
+.preview img { max-width: 220px; border-radius: var(--radius-card); border: 1px solid var(--line); background: #fff; }
 .disclosure { display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; color: var(--muted); }
 
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -220,18 +210,18 @@ kbd {
   display: grid;
   gap: 8px;
   place-items: center;
-  padding: 16px;
-  border: 2px solid var(--ink);
+  padding: 14px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 220ms var(--ease-out), border-color 160ms var(--ease-out), box-shadow 220ms var(--ease-out);
+  transition: transform 220ms var(--ease-out), border-color 160ms var(--ease-out);
 }
-.mode-card img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: 12px; }
-.mode-card.is-selected { border-color: var(--accent); box-shadow: 4px 4px 0 var(--accent); }
+.mode-card img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: 10px; }
+.mode-card.is-selected { border-color: var(--ink); border-width: 2px; }
 .mode-card:active:not(:disabled) { transform: scale(0.98); }
 .mode-card:disabled { opacity: 0.5; cursor: not-allowed; }
 .viewer-slot { display: block; width: 100%; height: 140px; }
@@ -239,39 +229,51 @@ kbd {
 
 .sketch-loader { display: flex; gap: 8px; }
 .sketch-loader span {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--ink);
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--ink);
   border-radius: 50%;
   animation: bob 900ms var(--ease-out) infinite alternate;
 }
-.sketch-loader span:nth-child(2) { animation-delay: 120ms; background: var(--accent); }
 .sketch-loader span:nth-child(3) { animation-delay: 240ms; }
 @keyframes bob {
-  from { transform: translateY(0) scale(0.95); opacity: 0.6; }
-  to { transform: translateY(-10px) scale(1); opacity: 1; }
+  from { transform: translateY(0); opacity: 0.5; }
+  to { transform: translateY(-8px); opacity: 1; }
 }
 
-.run { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; }
-.run canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-.hud { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; font-family: var(--display); font-size: 1.6rem; font-weight: 800; }
-.hud > span {
-  font-variant-numeric: tabular-nums;
-  min-width: 4.5ch;
-  padding: 2px 14px;
-  text-align: center;
-  background: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius-pill);
+.run { position: fixed; inset: 0; overflow: hidden; }
+/* The field fills the whole screen; the HUD, cue and hint are layered on top of it. */
+.run canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+/* The score sits top-right in plain mono, like a retro runner's counter. */
+.hud {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
 }
-.hud .button { min-height: 36px; padding: 6px 14px; background: var(--paper); }
+.hud > span {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.hud .button { min-height: 34px; padding: 4px 14px; font-size: 0.9rem; background: var(--paper); }
 /* The control hint is useful for the first few seconds, then gets out of the way. */
 .run .hint {
   position: absolute;
-  bottom: 12px;
+  bottom: 14px;
   left: 16px;
   right: 16px;
   text-align: center;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
   pointer-events: none;
   animation: hint-out 500ms var(--ease-out) 4s forwards;
 }
@@ -286,7 +288,7 @@ kbd {
   .button:active:not(:disabled), .mode-card:active:not(:disabled), .button-primary:active:not(:disabled) { transform: none; }
 }
 @media (hover: hover) and (pointer: fine) {
-  .button:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-  .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #fff); }
-  .mode-card:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--accent); }
+  .button:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 85%, var(--paper)); }
+  .mode-card:hover:not(:disabled) { border-color: var(--ink); }
 }

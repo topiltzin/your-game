@@ -6,9 +6,10 @@ import type { RunSession } from "./run";
 import type { ParticlePool } from "./effects/particles";
 import { parallaxOffsets } from "./effects/parallax";
 
-const INK = "#1b1b1f";
-const PAPER = "#f6f3ec";
-const ACCENT = "#e2432f";
+// Same neutral palette as the stylesheet: off-white paper, one dark ink, no accent colour.
+const INK = "#3c3c3c";
+const PAPER = "#f7f7f7";
+const ACCENT = "#3c3c3c";
 
 /** Pixels per world unit is height / REFERENCE_HEIGHT, so the scene keeps its shape at any size. */
 const REFERENCE_HEIGHT = 700;

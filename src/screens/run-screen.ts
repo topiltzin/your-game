@@ -22,6 +22,14 @@ export function mountRunScreen(
   root.innerHTML = `
     <section class="run" aria-label="Sketch Runner">
       <canvas id="game" aria-label="Game field"></canvas>
+      <div class="run-cue" id="cue">
+        <p class="wordmark">Sketch Runner</p>
+        <p class="display">Ready?</p>
+        <ul class="controls" aria-label="Controls">
+          <li><kbd>Tap</kbd> or <kbd>Space</kbd> to jump</li>
+          <li><kbd>↓</kbd> or swipe down to slide</li>
+        </ul>
+      </div>
       <div class="hud"><span id="distance">0</span><button class="button" id="pause" type="button">Pause</button></div>
       <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide.</p>
     </section>`;
