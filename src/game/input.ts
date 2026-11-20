@@ -1,10 +1,9 @@
 // Input mapping. Pure functions here; DOM wiring lives in attachInput (below) so tests stay DOM-free.
 
-export type Intent = "jump" | "slide" | "shoot";
+export type Intent = "jump" | "slide";
 
 const JUMP_KEYS = new Set([" ", "Spacebar", "ArrowUp"]);
 const SLIDE_KEYS = new Set(["ArrowDown"]);
-const SHOOT_KEYS = new Set(["x", "X", "f", "F"]);
 
 /** Vertical movement (px) that counts as a swipe. Below this, a gesture is a tap. */
 export const SWIPE_MIN_DISTANCE = 30;
@@ -12,7 +11,6 @@ export const SWIPE_MIN_DISTANCE = 30;
 export function intentForKey(key: string): Intent | null {
   if (JUMP_KEYS.has(key)) return "jump";
   if (SLIDE_KEYS.has(key)) return "slide";
-  if (SHOOT_KEYS.has(key)) return "shoot";
   return null;
 }
 

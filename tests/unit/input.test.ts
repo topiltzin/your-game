@@ -5,8 +5,6 @@ describe("input intents", () => {
   it("maps Space and ArrowUp to jump, ArrowDown to slide", () => {
     expect(intentForKey(" ")).toBe("jump");
     expect(intentForKey("Spacebar")).toBe("jump");
-    expect(intentForKey("x")).toBe("shoot");
-    expect(intentForKey("F")).toBe("shoot");
     expect(intentForKey("ArrowUp")).toBe("jump");
     expect(intentForKey("ArrowDown")).toBe("slide");
   });

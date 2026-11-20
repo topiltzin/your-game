@@ -1,6 +1,5 @@
 // Run screen: mounts the game canvas, starts a run, and maps game events to effects (FR-022).
 import { CONFIG } from "../game/config";
-import { CREATURE_METRICS } from "../game/creature";
 import type { CharacterMetrics } from "../game/character-metrics";
 import { attachControls } from "../game/controls";
 import { ParticlePool } from "../game/effects/particles";
@@ -29,11 +28,10 @@ export function mountRunScreen(
         <ul class="controls" aria-label="Controls">
           <li><kbd>Tap</kbd> or <kbd>Space</kbd> to jump</li>
           <li><kbd>↓</kbd> or swipe down to slide</li>
-          <li><kbd>X</kbd> to shoot pillars and bars</li>
         </ul>
       </div>
-      <div class="hud"><span id="distance">0</span><button class="button" id="shoot" type="button">Shoot</button><button class="button" id="pause" type="button">Pause</button></div>
-      <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide. X to shoot.</p>
+      <div class="hud"><span id="distance">0</span><button class="button" id="pause" type="button">Pause</button></div>
+      <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide.</p>
     </section>`;
   const canvas = root.querySelector<HTMLCanvasElement>("#game")!;
   const distanceEl = root.querySelector<HTMLSpanElement>("#distance")!;
@@ -41,16 +39,13 @@ export function mountRunScreen(
   resize(canvas);
 
   const particles = new ParticlePool(120, { enabled: !reducedMotion });
-  // The runner is always the pixel creature, so drawing and collision use the same box.
-  const renderer = new GameRenderer(canvas, { sprite: null, metrics: CREATURE_METRICS, reducedMotion });
+  const renderer = new GameRenderer(canvas, { sprite, metrics, reducedMotion });
   let finished = false;
 
   const onEvent = (event: RunEvent) => {
     const runner = session.runnerState;
     if (event.type === "land" || event.type === "jump") burst(particles, 6, 0, runner.y);
     if (event.type === "slide") burst(particles, 3, event.distance, 0);
-    if (event.type === "shot") burst(particles, 3, event.distance, 50);
-    if (event.type === "hit") burst(particles, 14, event.distance, 40, "accent");
     if (event.type === "milestone") {
       burst(particles, 12, event.distance, 60, "accent");
       if (!reducedMotion) pulse(distanceEl);
@@ -60,7 +55,7 @@ export function mountRunScreen(
       finish(session.distance);
     }
   };
-  const session = new RunSession({ seed: Date.now() % 100000, metrics: CREATURE_METRICS, onEvent });
+  const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
   const cue = root.querySelector<HTMLDivElement>("#cue")!;
 
   const controls = attachControls(root, {
@@ -68,7 +63,6 @@ export function mountRunScreen(
       if (session.state === "idle") beginRun();
       if (session.state !== "running") return;
       if (intent === "jump") session.jump();
-      else if (intent === "shoot") session.shoot();
       else session.slide();
     },
     onPause() {
@@ -76,10 +70,6 @@ export function mountRunScreen(
     },
   });
   pauseBtn.addEventListener("click", togglePause);
-  root.querySelector<HTMLButtonElement>("#shoot")!.addEventListener("click", () => {
-    if (session.state === "idle") beginRun();
-    session.shoot();
-  });
 
   /** The first tap or key press starts the run, so the player is never caught off guard. */
   function beginRun() {

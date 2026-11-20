@@ -4,9 +4,8 @@ import { collides } from "./collision";
 import { generateObstacles, type Obstacle } from "./obstacles";
 import { createRng, type Rng } from "./rng";
 import { createRunner, requestJump, requestSlide, stepRunner, type RunnerState } from "./physics";
-import { SHOT_COOLDOWN, SHOT_OFFSET, SHOT_RANGE, SHOT_SPEED, findShotTarget, type Shot } from "./shots";
 
-export type RunEventType = "jump" | "land" | "slide" | "crash" | "milestone" | "shot" | "hit";
+export type RunEventType = "jump" | "land" | "slide" | "crash" | "milestone";
 export interface RunEvent {
   readonly type: RunEventType;
   readonly distance: number;
@@ -48,8 +47,6 @@ export class RunSession {
   private obstacles: Obstacle[] = [];
   private accumulator = 0;
   private elapsed = 0;
-  private shotList: Shot[] = [];
-  private shotCooldown = 0;
   private readonly rng: Rng;
   private readonly metrics: CharacterMetrics;
   private readonly onEvent: (event: RunEvent) => void;
@@ -84,19 +81,6 @@ export class RunSession {
     const before = this.runner.mode;
     this.runner = requestSlide(this.runner);
     if (before !== "sliding" && this.runner.mode === "sliding") this.emit("slide");
-  }
-
-  /** Fires a shot from the runner's front. Ignored while the cooldown runs or the run is not active. */
-  shoot(): void {
-    if (this.state !== "running" || this.shotCooldown > 0) return;
-    this.shotCooldown = SHOT_COOLDOWN;
-    this.shotList = [...this.shotList, { x: this.distance + CONFIG.RUNNER_X + SHOT_OFFSET }];
-    this.emit("shot");
-  }
-
-  /** Shots in flight, in world order, for drawing. */
-  get shots(): readonly Shot[] {
-    return this.shotList;
   }
 
   get runnerState(): RunnerState {
@@ -135,30 +119,11 @@ export class RunSession {
       this.emit("milestone");
     }
 
-    this.advanceShots();
     this.extendObstacles();
     if (this.hasCollision()) {
       this.state = "ended";
       this.emit("crash");
     }
-  }
-
-  /** Moves shots forward, removes the first obstacle each one reaches, and drops shots out of range. */
-  private advanceShots(): void {
-    this.shotCooldown = Math.max(0, this.shotCooldown - DT);
-    const moved = this.shotList.map((shot) => ({ x: shot.x + SHOT_SPEED * DT }));
-    const runnerX = this.distance + CONFIG.RUNNER_X;
-    const survivors: Shot[] = [];
-    for (const shot of moved) {
-      const target = findShotTarget(shot.x, this.obstacles);
-      if (target) {
-        this.obstacles = this.obstacles.filter((o) => o !== target);
-        this.emit("hit");
-        continue;
-      }
-      if (shot.x <= runnerX + SHOT_RANGE) survivors.push(shot);
-    }
-    this.shotList = survivors;
   }
 
   private hasCollision(): boolean {
