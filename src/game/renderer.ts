@@ -5,6 +5,12 @@ import type { CharacterMetrics } from "./character-metrics";
 import type { RunSession } from "./run";
 import type { ParticlePool } from "./effects/particles";
 import { parallaxOffsets } from "./effects/parallax";
+import { CREATURE_METRICS, drawCreature } from "./creature";
+
+/** World units the runner covers per leg step. */
+const CREATURE_STRIDE = 30;
+const SHOT_WIDTH = 26; // world units
+const SHOT_HEIGHT = 8; // world units
 
 // Same neutral palette as the stylesheet: off-white paper, one dark ink, no accent colour.
 const INK = "#3c3c3c";
@@ -62,6 +68,7 @@ export class GameRenderer {
     for (const obstacle of run.upcoming()) this.drawObstacle(ctx, obstacle, run.distance, unit, groundY);
     this.drawShadow(ctx, run, unit, groundY);
     this.drawSpeedLines(ctx, run, unit, groundY);
+    this.drawShots(ctx, run, unit, groundY);
     this.drawCharacter(ctx, run, unit, groundY);
     this.drawParticles(ctx, particles, unit, groundY, run.distance);
   }
@@ -200,8 +207,14 @@ export class GameRenderer {
     if (this.options.sprite) {
       ctx.drawImage(this.options.sprite, -width / 2, -height, width, height);
     } else {
-      ctx.fillStyle = INK;
-      ctx.fillRect(-width / 2, -height, width, height);
+      // Pixel creature with its feet at the local origin; the context is already scaled to `unit` pixels.
+      drawCreature(ctx, 0, 0, unit, {
+        frame: Math.floor(run.distance / CREATURE_STRIDE),
+        airborne: state.y > AIRBORNE_EPSILON,
+        sliding: state.mode === "sliding",
+        ink: INK,
+        paper: PAPER,
+      });
     }
     ctx.restore();
   }
@@ -214,6 +227,17 @@ export class GameRenderer {
       scaleX: 1 + 0.12 * squash - 0.03 * stretch,
       scaleY: 1 - 0.14 * squash + 0.05 * stretch,
     };
+  }
+
+  /** Shots in flight: small ink bolts at the creature's gun height. */
+  private drawShots(ctx: CanvasRenderingContext2D, run: RunSession, unit: number, groundY: number): void {
+    const y = groundY - CREATURE_METRICS.heightUnits * 0.55 * unit;
+    ctx.fillStyle = INK;
+    for (const shot of run.shots) {
+      const x = (shot.x - run.distance) * unit + CONFIG.RUNNER_X * unit;
+      roundedRect(ctx, x, y, SHOT_WIDTH * unit, SHOT_HEIGHT * unit, (SHOT_HEIGHT * unit) / 2);
+      ctx.fill();
+    }
   }
 
   private drawParticles(ctx: CanvasRenderingContext2D, particles: ParticlePool, unit: number, groundY: number, distance: number): void {
