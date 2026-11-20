@@ -10,12 +10,22 @@ import { mountModeScreen, type ModeChoice } from "./screens/mode-screen";
 import { mountRunScreen } from "./screens/run-screen";
 import { mountSummaryScreen } from "./screens/summary-screen";
 import { enter, leave } from "./ui/transitions";
+import type { CharacterMetrics } from "./game/character-metrics";
+import { presetById, presetMetrics, renderPreset } from "./game/presets";
+
+/** Preset pixel size on the runner sprite, and its colours (the same palette as the stylesheet). */
+const PRESET_SPRITE_CELL = 16;
+const PRESET_INK = "#3c3c3c";
+const PRESET_PAPER = "#f7f7f7";
+const DEFAULT_CHOICE: ModeChoice = { presentation: "2d", snapshotUrl: null, presetId: null };
 
 const root = document.getElementById("app");
 if (!root) throw new Error("#app missing");
 const screen: HTMLElement = root;
 
 let character: CharacterReady | null = null;
+/** The last choice made on the mode screen, so Play again uses the same hero. */
+let runChoice: ModeChoice | null = null;
 let stopCurrent: (() => void) | null = null;
 
 async function show(mount: () => void): Promise<void> {
@@ -65,11 +75,28 @@ function toMode(modelUrl: string): void {
 function toRun(choice: ModeChoice): void {
   const current = character;
   if (!current) return toUpload();
-  const sprite = new Image();
-  sprite.src = choice.presentation === "3d" && choice.snapshotUrl ? choice.snapshotUrl : current.sketchUrl;
+  runChoice = choice;
+  const { sprite, metrics } = runSetup(choice, current);
   void show(() => {
-    stopCurrent = mountRunScreen(screen, sprite, current.metrics, { onEnd: (distance) => toSummary(distance) });
+    stopCurrent = mountRunScreen(screen, sprite, metrics, { onEnd: (distance) => toSummary(distance) });
   });
+}
+
+/** The runner's picture and size for a choice: a preset, the 3D snapshot, or the player's sketch. */
+function runSetup(choice: ModeChoice, current: CharacterReady): { sprite: HTMLImageElement; metrics: CharacterMetrics } {
+  const preset = choice.presentation === "preset" && choice.presetId ? presetById(choice.presetId) : null;
+  if (preset) {
+    const canvas = renderPreset(preset, PRESET_SPRITE_CELL, PRESET_INK, PRESET_PAPER);
+    return { sprite: imageFrom(canvas.toDataURL("image/png")), metrics: presetMetrics(preset) };
+  }
+  const src = choice.presentation === "3d" && choice.snapshotUrl ? choice.snapshotUrl : current.sketchUrl;
+  return { sprite: imageFrom(src), metrics: current.metrics };
+}
+
+function imageFrom(src: string): HTMLImageElement {
+  const image = new Image();
+  image.src = src;
+  return image;
 }
 
 function toSummary(distance: number): void {
@@ -78,10 +105,9 @@ function toSummary(distance: number): void {
       onPlayAgain: () => {
         const current = character;
         if (!current) return toUpload();
-        const sprite = new Image();
-        sprite.src = current.sketchUrl;
+        const { sprite, metrics } = runSetup(runChoice ?? DEFAULT_CHOICE, current);
         void show(() => {
-          stopCurrent = mountRunScreen(screen, sprite, current.metrics, { onEnd: (d) => toSummary(d) });
+          stopCurrent = mountRunScreen(screen, sprite, metrics, { onEnd: (d) => toSummary(d) });
         });
       },
       onNewCharacter: () => toUpload(),
