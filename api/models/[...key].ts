@@ -1,4 +1,5 @@
-// GET /api/models/{blob key}?exp=&sig=: serves a private model file after verifying its signed URL.
+// GET /api/models/{file}?exp=&sig=: serves a private model file after verifying its signed URL.
+// The file is a single path segment, e.g. /api/models/<jobId>.glb (storage key models/<jobId>.glb).
 import { createBlobStore } from "../../server/lib/blob.js";
 import { fail } from "../../server/lib/http.js";
 import { verifyModelUrl } from "../../server/lib/signed-model-url.js";

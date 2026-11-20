@@ -10,6 +10,17 @@ describe("signed model URLs (FR-004, contract: 15-minute TTL)", () => {
     expect(verifyModelUrl(new URL(url), { secret: SECRET, now: NOW })).toBe("models/job-1.glb");
   });
 
+  it("puts the model in a single path segment, because the deployed router 404s on deeper paths", () => {
+    const url = new URL(signModelUrl({ key: "models/job-1.glb", ttlSeconds: 900, secret: SECRET, baseUrl: "https://app.test", now: NOW }));
+    expect(url.pathname).toBe("/api/models/job-1.glb");
+  });
+
+  it("rejects a URL that presents a different segment name", () => {
+    const url = new URL(signModelUrl({ key: "models/job-1.glb", ttlSeconds: 900, secret: SECRET, baseUrl: "https://app.test", now: NOW }));
+    url.pathname = "/api/models/job-2.glb";
+    expect(verifyModelUrl(url, { secret: SECRET, now: NOW })).toBeNull();
+  });
+
   it("rejects an expired URL", () => {
     const url = signModelUrl({ key: "models/job-1.glb", ttlSeconds: 900, secret: SECRET, baseUrl: "https://app.test", now: NOW });
     const later = new Date(NOW.getTime() + 901 * 1000);
