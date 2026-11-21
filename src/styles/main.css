@@ -374,6 +374,69 @@ kbd {
   pointer-events: none;
 }
 .run-toast:empty { display: none; }
+/* What the next obstacle needs, shown about a second before it arrives. Jump is coral, slide is ink, so the two never blur. */
+.run-action {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  padding: 8px 22px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: clamp(1.2rem, 4.5vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 4px 4px 0 var(--ink);
+  pointer-events: none;
+  animation: action-in 160ms var(--ease-out) both;
+}
+.run-action:empty { display: none; }
+.run-action[data-action="jump"] { background: var(--accent); color: var(--on-accent); }
+.run-action[data-action="slide"] { background: var(--ink); color: var(--paper); border-color: var(--paper); box-shadow: 4px 4px 0 var(--accent); }
+@keyframes action-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.cue-start {
+  margin: 0;
+  padding: 6px 16px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 800;
+  animation: cue-pulse 1100ms var(--ease-out) 400ms infinite alternate;
+}
+@keyframes cue-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+/* Pause card over a dimmed field. */
+.run-pause {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+.run-pause .cue-card { text-align: center; }
+
+/* A coral flash when the runner crashes. */
+.run-flash {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* The control hint is useful for the first few seconds, then gets out of the way. */
 .run .hint {
   position: absolute;
@@ -405,7 +468,7 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .sketch-loader span { animation: none; }
-  .score, .cue-card > * { animation: none; }
+  .score, .cue-card > *, .cue-start, .run-action { animation: none; }
   .button, .mode-card, .preset-chip { transition: none; }
   .button:active:not(:disabled), .mode-card:active:not(:disabled), .preset-chip:active:not(:disabled) { transform: none; }
 }

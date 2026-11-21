@@ -52,6 +52,17 @@ const POST_HEIGHT = 2;
 const PORTRAIT_ASPECT = 0.95;
 const MAX_PULL_BACK = 1.8;
 const PIT_EDGE = 0.14;
+/** Overhead gantries span the lane between the kerbs. */
+const GANTRY_WIDTH = 8.8;
+const WARNING_LINE_DEPTH = 0.12;
+/** Distance between the warning line and the front of the obstacle, in scene units. */
+const WARNING_LINE_GAP = 0.9;
+/** How much of a jump the camera follows: enough to feel the height, little enough to keep the track steady. */
+const CAMERA_JUMP_FOLLOW = 0.35;
+const RUN_BOB = 0.045;
+const RUN_BOB_RATE = 0.3;
+const CRASH_SHAKE_MS = 450;
+const CRASH_SHAKE_SIZE = 0.35;
 const CLOUD_COUNT = 7;
 const CLOUD_SPAN = 160;
 const SLIDE_SCALE = CONFIG.SLIDE_HEIGHT_FACTOR;
@@ -105,6 +116,8 @@ export class RunScene {
   private readonly coinMeshes = new Map<Coin, THREE.Mesh>();
   private readonly shadowWidth: number;
   private aspect = 1;
+  private shakeUntil = 0;
+  private reducedMotion = false;
   private readonly materials = {
     wall: new THREE.MeshBasicMaterial({ color: CORAL }),
     bar: new THREE.MeshBasicMaterial({ color: INK }),
@@ -118,6 +131,7 @@ export class RunScene {
     cloud: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false }),
     sun: new THREE.MeshBasicMaterial({ color: CORAL, fog: false }),
     shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32 }),
+    footprint: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 }),
   };
 
   constructor(canvas: HTMLCanvasElement, metrics: CharacterMetrics, source: RunnerSource) {
@@ -169,14 +183,18 @@ export class RunScene {
   sync(session: RunSession): void {
     const runnerX = session.distance + CONFIG.RUNNER_X;
     const lift = session.runnerState.y * UNIT;
-    this.runner.position.set(0, lift, 0);
-    this.runner.scale.y = session.runnerState.mode === "sliding" ? SLIDE_SCALE : 1;
+    const mode = session.runnerState.mode;
+    // Running bobs a little so the hero feels alive; a rising jump stretches, a slide squashes.
+    const bob = mode === "standing" && !this.reducedMotion ? Math.abs(Math.sin(session.ticks * RUN_BOB_RATE)) * RUN_BOB : 0;
+    this.runner.position.set(0, lift + bob, 0);
+    const stretch = mode === "jumping" && session.runnerState.vy > 0 ? 1.06 : 1;
+    this.runner.scale.y = mode === "sliding" ? SLIDE_SCALE : stretch;
 
     // The shadow stays on the ground and shrinks as the runner rises, so a jump reads as height.
     const squeeze = 1 / (1 + lift * 0.9);
     this.shadow.scale.set(this.shadowWidth * squeeze, this.shadowWidth * squeeze * 0.6, 1);
 
-    this.updateCamera(session.speed);
+    this.updateCamera(session.speed, lift);
 
     const travelled = session.distance * UNIT;
     const dashPhase = travelled % DASH_SPACING;
@@ -198,7 +216,7 @@ export class RunScene {
   }
 
   /** The camera sits still behind the runner; the view widens a little as the run speeds up. */
-  private updateCamera(speed: number): void {
+  private updateCamera(speed: number, lift: number): void {
     const t = Math.min(1, Math.max(0, (speed - CONFIG.START_SPEED) / (CONFIG.MAX_SPEED - CONFIG.START_SPEED)));
     const fov = FOV_SLOW + (FOV_FAST - FOV_SLOW) * t;
     if (Math.abs(fov - this.camera.fov) > 0.05) {
@@ -207,8 +225,10 @@ export class RunScene {
     }
     // On a tall, narrow screen the view is narrow too, so step back and up until the track fits.
     const pullBack = Math.min(MAX_PULL_BACK, Math.max(1, PORTRAIT_ASPECT / this.aspect));
-    this.camera.position.set(0, CAMERA_HEIGHT * (0.6 + 0.4 * pullBack), CAMERA_BACK * pullBack);
-    this.camera.lookAt(0, LOOK_AT_HEIGHT, LOOK_AT_AHEAD);
+    const follow = lift * CAMERA_JUMP_FOLLOW;
+    this.camera.position.set(0, CAMERA_HEIGHT * (0.6 + 0.4 * pullBack) + follow, CAMERA_BACK * pullBack);
+    this.camera.lookAt(0, LOOK_AT_HEIGHT + follow * 0.6, LOOK_AT_AHEAD);
+    this.applyShake();
   }
 
   /** Coins spin in place and slide toward the runner with the track. Collected coins disappear. */
@@ -231,6 +251,25 @@ export class RunScene {
     }
   }
 
+  /** Skips idle motion (bobbing, shake) for players who asked for less movement. */
+  setReducedMotion(reduced: boolean): void {
+    this.reducedMotion = reduced;
+  }
+
+  /** A short camera shake for a crash. */
+  crash(): void {
+    if (this.reducedMotion) return;
+    this.shakeUntil = performance.now() + CRASH_SHAKE_MS;
+  }
+
+  private applyShake(): void {
+    const left = this.shakeUntil - performance.now();
+    if (left <= 0) return;
+    const strength = (left / CRASH_SHAKE_MS) * CRASH_SHAKE_SIZE;
+    this.camera.position.x += (Math.random() - 0.5) * strength;
+    this.camera.position.y += (Math.random() - 0.5) * strength;
+  }
+
   render(): void {
     this.renderer.render(this.scene, this.camera);
   }
@@ -244,12 +283,14 @@ export class RunScene {
     for (const [obstacle, mesh] of this.obstacleMeshes) {
       if (keep.has(obstacle)) continue;
       this.scene.remove(mesh);
+      disposeGeometries(mesh);
       this.obstacleMeshes.delete(obstacle);
     }
     for (const obstacle of visible) {
       let mesh = this.obstacleMeshes.get(obstacle);
       if (!mesh) {
         mesh = this.buildObstacle(obstacle);
+        mesh.add(this.buildWarningLine(obstacle));
         this.obstacleMeshes.set(obstacle, mesh);
         this.scene.add(mesh);
       }
@@ -276,27 +317,50 @@ export class RunScene {
       }
       return group;
     }
+    const depth = obstacle.width * UNIT;
     if (obstacle.kind === "overhead") {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(obstacle.width * UNIT, BAR_HEIGHT * UNIT, 0.4), this.materials.bar);
-      bar.position.y = (obstacle.clearance + BAR_HEIGHT / 2) * UNIT;
-      group.add(bar);
-      // A coral stripe on the underside shows where to slide.
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(obstacle.width * UNIT, 0.05, 0.42), this.materials.lane);
+      // A gantry across the whole track: two posts at the kerbs and a beam at the clearance height.
+      // Its depth is the obstacle's real length, so what you see is what can hit you.
+      const beamHeight = BAR_HEIGHT * UNIT;
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(GANTRY_WIDTH, beamHeight, depth), this.materials.bar);
+      beam.position.y = obstacle.clearance * UNIT + beamHeight / 2;
+      group.add(beam);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(GANTRY_WIDTH, 0.05, depth + 0.04), this.materials.lane);
       stripe.position.y = obstacle.clearance * UNIT;
       group.add(stripe);
+      const postHeight = obstacle.clearance * UNIT + beamHeight;
+      const postGeometry = new THREE.BoxGeometry(0.3, postHeight, Math.min(depth, 0.5));
+      for (const side of [-1, 1]) {
+        const post = new THREE.Mesh(postGeometry, this.materials.bar);
+        post.position.set((side * GANTRY_WIDTH) / 2, postHeight / 2, 0);
+        group.add(post);
+      }
+      // A shadow on the track shows where the beam passes over, so its distance is easy to judge.
+      const shade = new THREE.Mesh(new THREE.BoxGeometry(GANTRY_WIDTH, 0.015, depth), this.materials.footprint);
+      shade.position.y = 0.012;
+      group.add(shade);
       return group;
     }
     // Pinch: two walls with a passage of gapWidth between them, centred on the obstacle.
     const half = (obstacle.gapWidth / 2 + WALL_THICKNESS / 2) * UNIT;
+    const wallGeometry = new THREE.BoxGeometry(WALL_THICKNESS * UNIT, WALL_HEIGHT * UNIT, depth);
+    const capGeometry = new THREE.BoxGeometry(WALL_THICKNESS * UNIT * 1.25, 0.12, depth + 0.1);
     for (const side of [-1, 1]) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS * UNIT, WALL_HEIGHT * UNIT, 0.4), this.materials.wall);
+      const wall = new THREE.Mesh(wallGeometry, this.materials.wall);
       wall.position.set(side * half, (WALL_HEIGHT / 2) * UNIT, 0);
       group.add(wall);
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS * UNIT * 1.25, 0.12, 0.5), this.materials.edge);
+      const cap = new THREE.Mesh(capGeometry, this.materials.edge);
       cap.position.set(side * half, WALL_HEIGHT * UNIT, 0);
       group.add(cap);
     }
     return group;
+  }
+
+  /** A coral line across the track just before an obstacle, so every hazard announces itself early. */
+  private buildWarningLine(obstacle: Obstacle): THREE.Mesh {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(GANTRY_WIDTH, 0.02, WARNING_LINE_DEPTH), this.materials.lane);
+    line.position.set(0, 0.013, (obstacle.width * UNIT) / 2 + WARNING_LINE_GAP);
+    return line;
   }
 
   private buildTrack(): THREE.Group {
@@ -409,4 +473,11 @@ function buildSpriteBillboard(image: HTMLImageElement, metrics: CharacterMetrics
 function whenLoaded(image: HTMLImageElement, onReady: () => void): void {
   if (image.complete && image.naturalWidth > 0) onReady();
   else image.addEventListener("load", onReady, { once: true });
+}
+
+/** Obstacles are built per instance, so their geometry is freed when they scroll out of range. Materials are shared. */
+function disposeGeometries(root: THREE.Object3D): void {
+  root.traverse((child) => {
+    if (child instanceof THREE.Mesh) child.geometry.dispose();
+  });
 }
