@@ -10,13 +10,14 @@ export interface SummaryHandlers {
 
 const COUNT_UP_MS = 700;
 
-export function mountSummaryScreen(root: HTMLElement, distance: number, handlers: SummaryHandlers): void {
+export function mountSummaryScreen(root: HTMLElement, distance: number, coins: number, handlers: SummaryHandlers): void {
   const { isNewBest } = recordBest(localStore(), distance, new Date());
   const meters = Math.floor(distance);
   root.innerHTML = `
     <section class="panel center" aria-labelledby="title">
       <p class="eyebrow">${isNewBest ? "New best" : "Run over"}</p>
       <h1 id="title" class="display score" aria-label="Distance ${meters} meters"><span id="score">${meters}</span><span class="unit">m</span></h1>
+      <p class="lede">${coins} ${coins === 1 ? "coin" : "coins"} collected</p>
       <div class="actions">
         <button class="button button-primary" id="again" type="button">Run again</button>
         <button class="button" id="new" type="button">New character</button>

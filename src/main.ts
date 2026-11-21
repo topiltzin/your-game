@@ -79,7 +79,7 @@ function toRun(choice: ModeChoice): void {
   runChoice = choice;
   const { source, metrics } = runSetup(choice, current);
   void show(() => {
-    stopCurrent = mountRunScreen(screen, source, metrics, { onEnd: (distance) => toSummary(distance) });
+    stopCurrent = mountRunScreen(screen, source, metrics, { onEnd: (distance, coins) => toSummary(distance, coins) });
   });
 }
 
@@ -102,15 +102,15 @@ function imageFrom(src: string): HTMLImageElement {
   return image;
 }
 
-function toSummary(distance: number): void {
+function toSummary(distance: number, coins: number): void {
   void show(() =>
-    mountSummaryScreen(screen, distance, {
+    mountSummaryScreen(screen, distance, coins, {
       onPlayAgain: () => {
         const current = character;
         if (!current) return toUpload();
         const { source, metrics } = runSetup(runChoice ?? DEFAULT_CHOICE, current);
         void show(() => {
-          stopCurrent = mountRunScreen(screen, source, metrics, { onEnd: (d) => toSummary(d) });
+          stopCurrent = mountRunScreen(screen, source, metrics, { onEnd: (d, c) => toSummary(d, c) });
         });
       },
       onNewCharacter: () => toUpload(),

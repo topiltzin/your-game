@@ -4,8 +4,9 @@ import { collides } from "./collision";
 import { generateObstacles, type Obstacle } from "./obstacles";
 import { createRng, type Rng } from "./rng";
 import { createRunner, requestJump, requestSlide, stepRunner, type RunnerState } from "./physics";
+import { coinsFor, collectCoins, type Coin } from "./coins";
 
-export type RunEventType = "jump" | "land" | "slide" | "crash" | "milestone";
+export type RunEventType = "jump" | "land" | "slide" | "crash" | "milestone" | "coin";
 export interface RunEvent {
   readonly type: RunEventType;
   readonly distance: number;
@@ -45,6 +46,8 @@ export class RunSession {
 
   private runner: RunnerState = createRunner();
   private obstacles: Obstacle[] = [];
+  private coinList: Coin[] = [];
+  private coinTotal = 0;
   private accumulator = 0;
   private elapsed = 0;
   private readonly rng: Rng;
@@ -87,6 +90,18 @@ export class RunSession {
     return this.runner;
   }
 
+  /** Coins collected this run: the score next to distance. */
+  get coinsCollected(): number {
+    return this.coinTotal;
+  }
+
+  /** Coins still ahead of the runner, for drawing. */
+  upcomingCoins(): readonly Coin[] {
+    const from = this.distance - 200;
+    const to = this.distance + 3000;
+    return this.coinList.filter((c) => c.x >= from && c.x <= to);
+  }
+
   /** Obstacles near or ahead of the runner, in world order, for drawing. */
   upcoming(): readonly Obstacle[] {
     const from = this.distance - 200;
@@ -119,10 +134,23 @@ export class RunSession {
       this.emit("milestone");
     }
 
+    this.collectCoinsNow();
     this.extendObstacles();
     if (this.hasCollision()) {
       this.state = "ended";
       this.emit("crash");
+    }
+  }
+
+  /** A coin is taken when the runner's body passes through it, so a clean jump over a gap collects its arc. */
+  private collectCoinsNow(): void {
+    const runnerX = this.distance + CONFIG.RUNNER_X;
+    const bodyCentre = this.runner.y + this.metrics.heightUnits / 2;
+    const result = collectCoins(this.coinList, runnerX, bodyCentre);
+    this.coinList = result.remaining;
+    for (let i = 0; i < result.collected; i++) {
+      this.coinTotal += 1;
+      this.emit("coin");
     }
   }
 
@@ -135,7 +163,9 @@ export class RunSession {
     const reach = this.distance + CONFIG.RUNNER_X + LOOKAHEAD;
     while (this.obstacles.length === 0 || this.lastObstacleX() < reach) {
       const startX = this.obstacles.length === 0 ? CONFIG.FIRST_OBSTACLE_X : this.lastObstacleX() + CONFIG.MAX_SPACING;
-      this.obstacles.push(...generateObstacles(this.rng, this.metrics, OBSTACLE_BATCH, startX));
+      const batch = generateObstacles(this.rng, this.metrics, OBSTACLE_BATCH, startX);
+      this.obstacles.push(...batch);
+      this.coinList.push(...batch.flatMap((o) => coinsFor(o, this.rng.next())));
     }
   }
 

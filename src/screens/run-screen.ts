@@ -7,7 +7,7 @@ import { RunScene, type RunnerSource } from "../render/run-scene";
 import { prefersReducedMotion } from "../ui/reduced-motion";
 
 export interface RunHandlers {
-  onEnd(distance: number): void;
+  onEnd(distance: number, coins: number): void;
 }
 
 export function mountRunScreen(
@@ -28,11 +28,18 @@ export function mountRunScreen(
           <li><kbd>↓</kbd> or swipe down to slide</li>
         </ul>
       </div>
-      <div class="hud"><span id="distance">0 m</span><button class="button" id="pause" type="button">Pause</button></div>
+      <div class="hud">
+        <div class="hud-score">
+          <span id="distance" class="hud-distance">0 m</span>
+          <span class="hud-coins"><span class="coin-dot" aria-hidden="true"></span><span id="coins">0</span></span>
+        </div>
+        <button class="button" id="pause" type="button">Pause</button>
+      </div>
       <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide.</p>
     </section>`;
   const canvas = root.querySelector<HTMLCanvasElement>("#game")!;
   const distanceEl = root.querySelector<HTMLSpanElement>("#distance")!;
+  const coinsEl = root.querySelector<HTMLSpanElement>("#coins")!;
   const pauseBtn = root.querySelector<HTMLButtonElement>("#pause")!;
   const cue = root.querySelector<HTMLDivElement>("#cue")!;
 
@@ -44,6 +51,7 @@ export function mountRunScreen(
   let finished = false;
   const onEvent = (event: RunEvent) => {
     if (event.type === "milestone" && !reducedMotion) pulse(distanceEl);
+    if (event.type === "coin" && !reducedMotion) pulse(coinsEl);
     if (event.type === "crash") finish(session.distance);
   };
   const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
@@ -78,6 +86,7 @@ export function mountRunScreen(
     scene.sync(session);
     scene.render();
     distanceEl.textContent = `${Math.floor(session.distance)} m`;
+    coinsEl.textContent = String(session.coinsCollected);
   });
 
   function finish(distance: number) {
@@ -87,7 +96,7 @@ export function mountRunScreen(
     controls();
     window.removeEventListener("resize", fit);
     scene.dispose();
-    handlers.onEnd(distance);
+    handlers.onEnd(distance, session.coinsCollected);
   }
 
   return () => {

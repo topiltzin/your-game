@@ -3,6 +3,7 @@
 // lazily; its snapshot becomes the runner sprite in 3D mode.
 import { createViewer, loadModelViewer, webglAvailable } from "../character/model-viewer";
 import { PRESETS, renderPreset } from "../game/presets";
+import { preloadModel } from "../render/run-scene";
 import { presentationAvailability, type Presentation } from "./mode-availability";
 
 export interface ModeChoice {
@@ -25,6 +26,8 @@ export function mountModeScreen(
 ): void {
   const webgl = webglAvailable();
   const threeD = presentationAvailability({ modelStatus: "ready", webgl }, "3d");
+  // Start the model download now, while the player picks a hero, so the run does not wait for it.
+  if (webgl) preloadModel(modelUrl).catch(() => undefined);
   root.innerHTML = `
     <section class="panel" aria-labelledby="title">
       <h1 id="title" class="display">Pick your hero</h1>

@@ -5,13 +5,22 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { CharacterMetrics } from "../game/character-metrics";
 import { CONFIG } from "../game/config";
+import type { Coin } from "../game/coins";
 import type { Obstacle } from "../game/obstacles";
 import type { RunSession } from "../game/run";
 
+const COIN_COLOUR = 0xf2a51a;
+/** A flat gold disc, standing so it faces the camera. */
+const COIN_GEOMETRY = new THREE.CylinderGeometry(0.16, 0.16, 0.03, 20).rotateX(Math.PI / 2);
+
 const UNIT = 0.01;
-const PAPER = 0xf7f7f7;
-const INK = 0x3c3c3c;
-const GROUND = 0xececec;
+// A bright platform-game world: sky, grass track, green pipes, brick bars, dark pits.
+const SKY = 0xbfe9ff;
+const GRASS = 0x7bd389;
+const GRASS_DARK = 0x4fae5c;
+const PIPE = 0x2f9e44;
+const BRICK = 0xff8a5c;
+const PIT = 0x1d3b2a;
 const WALL_THICKNESS = 20; // game units
 const WALL_HEIGHT = 120; // game units
 const BAR_HEIGHT = 14; // game units
@@ -32,6 +41,21 @@ export type RunnerSource =
   | { readonly kind: "sprite"; readonly image: HTMLImageElement }
   | { readonly kind: "model"; readonly url: string };
 
+/** Parsed models by URL. A model is downloaded and parsed once; every run copies it instead of re-downloading. */
+const modelCache = new Map<string, Promise<THREE.Group>>();
+
+/** Starts downloading a model in the background, so the run can begin without waiting for it. */
+export function preloadModel(url: string): Promise<THREE.Group> {
+  let cached = modelCache.get(url);
+  if (!cached) {
+    cached = new GLTFLoader().loadAsync(url).then((gltf) => gltf.scene);
+    // A failed download must not stay cached, or every later run would fail too.
+    cached.catch(() => modelCache.delete(url));
+    modelCache.set(url, cached);
+  }
+  return cached;
+}
+
 export class RunScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -39,16 +63,21 @@ export class RunScene {
   private readonly runner = new THREE.Group();
   private readonly obstacleMeshes = new Map<Obstacle, THREE.Object3D>();
   private readonly dashes: THREE.Mesh[] = [];
+  private readonly coinMeshes = new Map<Coin, THREE.Mesh>();
   private readonly materials = {
-    ink: new THREE.MeshBasicMaterial({ color: INK }),
-    ground: new THREE.MeshBasicMaterial({ color: GROUND }),
+    pipe: new THREE.MeshBasicMaterial({ color: PIPE }),
+    brick: new THREE.MeshBasicMaterial({ color: BRICK }),
+    grass: new THREE.MeshBasicMaterial({ color: GRASS }),
+    lane: new THREE.MeshBasicMaterial({ color: GRASS_DARK }),
+    pit: new THREE.MeshBasicMaterial({ color: PIT }),
+    coin: new THREE.MeshBasicMaterial({ color: COIN_COLOUR }),
   };
 
   constructor(canvas: HTMLCanvasElement, metrics: CharacterMetrics, source: RunnerSource) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    this.scene.background = new THREE.Color(PAPER);
-    this.scene.fog = new THREE.Fog(PAPER, 14, 46);
+    this.scene.background = new THREE.Color(SKY);
+    this.scene.fog = new THREE.Fog(SKY, 14, 46);
 
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.5));
     const sun = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -64,8 +93,7 @@ export class RunScene {
 
   /** Loads the 3D model, scales it to the game's character height and stands it on the track. */
   private async loadModel(url: string, metrics: CharacterMetrics): Promise<void> {
-    const gltf = await new GLTFLoader().loadAsync(url);
-    const model = gltf.scene;
+    const model = (await preloadModel(url)).clone(true);
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const scale = size.y > 0 ? (metrics.heightUnits * UNIT) / size.y : 1;
@@ -100,6 +128,27 @@ export class RunScene {
     });
 
     this.syncObstacles(session.upcoming(), runnerX);
+    this.syncCoins(session.upcomingCoins(), runnerX, session.ticks);
+  }
+
+  /** Coins spin in place and slide toward the runner with the track. Collected coins disappear. */
+  private syncCoins(visible: readonly Coin[], runnerX: number, ticks: number): void {
+    const keep = new Set(visible);
+    for (const [coin, mesh] of this.coinMeshes) {
+      if (keep.has(coin)) continue;
+      this.scene.remove(mesh);
+      this.coinMeshes.delete(coin);
+    }
+    for (const coin of visible) {
+      let mesh = this.coinMeshes.get(coin);
+      if (!mesh) {
+        mesh = new THREE.Mesh(COIN_GEOMETRY, this.materials.coin);
+        this.coinMeshes.set(coin, mesh);
+        this.scene.add(mesh);
+      }
+      mesh.position.set(0, coin.y * UNIT, -(coin.x - runnerX) * UNIT);
+      mesh.rotation.y = ticks * 0.08;
+    }
   }
 
   render(): void {
@@ -132,16 +181,16 @@ export class RunScene {
 
   private buildObstacle(obstacle: Obstacle): THREE.Object3D {
     const group = new THREE.Group();
-    const ink = this.materials.ink;
     if (obstacle.kind === "ground_gap") {
-      // A hole: a slab in the background colour laid over the track.
-      const hole = new THREE.Mesh(new THREE.BoxGeometry(obstacle.width * UNIT, 0.02, TRACK_WIDTH), this.materials.ground);
+      // A pit: a dark slab laid over the grass, so the gap reads as a hole to jump.
+      // Across the track is x, along the track (distance) is z: the pit is as long as the gap, not the track.
+      const hole = new THREE.Mesh(new THREE.BoxGeometry(TRACK_WIDTH, 0.02, obstacle.width * UNIT), this.materials.pit);
       hole.position.y = 0.011;
       group.add(hole);
       return group;
     }
     if (obstacle.kind === "overhead") {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(obstacle.width * UNIT, BAR_HEIGHT * UNIT, 0.4), ink);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(obstacle.width * UNIT, BAR_HEIGHT * UNIT, 0.4), this.materials.brick);
       bar.position.y = (obstacle.clearance + BAR_HEIGHT / 2) * UNIT;
       group.add(bar);
       return group;
@@ -149,7 +198,7 @@ export class RunScene {
     // Pinch: two walls with a passage of gapWidth between them, centred on the obstacle.
     const half = (obstacle.gapWidth / 2 + WALL_THICKNESS / 2) * UNIT;
     for (const side of [-1, 1]) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS * UNIT, WALL_HEIGHT * UNIT, 0.4), ink);
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS * UNIT, WALL_HEIGHT * UNIT, 0.4), this.materials.pipe);
       wall.position.set(side * half, (WALL_HEIGHT / 2) * UNIT, 0);
       group.add(wall);
     }
@@ -157,7 +206,7 @@ export class RunScene {
   }
 
   private buildTrack(): THREE.Mesh {
-    const track = new THREE.Mesh(new THREE.BoxGeometry(TRACK_WIDTH, 0.02, TRACK_LENGTH), this.materials.ground);
+    const track = new THREE.Mesh(new THREE.BoxGeometry(TRACK_WIDTH, 0.02, TRACK_LENGTH), this.materials.grass);
     track.position.set(0, -0.01, -TRACK_LENGTH / 2 + 10);
     return track;
   }
@@ -165,7 +214,7 @@ export class RunScene {
   private buildDashes(): void {
     const geometry = new THREE.BoxGeometry(0.08, 0.021, 0.8);
     for (let i = 0; i < DASH_COUNT; i++) {
-      const dash = new THREE.Mesh(geometry, this.materials.ink);
+      const dash = new THREE.Mesh(geometry, this.materials.lane);
       dash.position.set(0, 0.0, -i * DASH_SPACING);
       this.dashes.push(dash);
       this.scene.add(dash);

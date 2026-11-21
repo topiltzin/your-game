@@ -265,23 +265,48 @@ kbd {
 /* The field fills the whole screen; the HUD, cue and hint are layered on top of it. */
 .run canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 /* The score sits top-right in plain mono, like a retro runner's counter. */
+/* Score card top-left (distance and coins), Pause top-right. */
 .hud {
   position: absolute;
   top: 14px;
   left: 14px;
   right: 14px;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
 }
-.hud > span {
+.hud-score {
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+}
+.hud-distance {
   font-family: var(--mono);
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
+  color: var(--ink);
+}
+.hud-coins {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.coin-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f2a51a;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #f2a51a 60%, #000);
 }
 .hud .button { min-height: 34px; padding: 4px 14px; font-size: 0.9rem; background: var(--paper); }
 /* The control hint is useful for the first few seconds, then gets out of the way. */
