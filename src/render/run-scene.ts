@@ -68,6 +68,12 @@ const CLOUD_SPAN = 160;
 const SLIDE_SCALE = CONFIG.SLIDE_HEIGHT_FACTOR;
 /** Pixel-art sprites (presets) are small; they stay crisp instead of being smoothed. */
 const PIXEL_ART_MAX_SIDE = 256;
+/**
+ * Turns the 3D model about its own vertical axis so its face looks at the camera (the camera is behind the runner).
+ * Set to half a turn because the model was seen from behind. If it ever shows its side or back,
+ * this is the one number to change (Math.PI / 2 is a quarter turn, 0 is no turn).
+ */
+const MODEL_FACING_YAW = Math.PI;
 
 /** The runner is a flat sprite (the player's sketch or a preset) or the 3D model from its URL. */
 export type RunnerSource =
@@ -169,6 +175,7 @@ export class RunScene {
     model.position.set(-centre.x, -scaled.min.y, -centre.z);
     const holder = new THREE.Group();
     holder.add(model);
+    holder.rotation.y = MODEL_FACING_YAW;
     this.runner.add(holder);
   }
 
