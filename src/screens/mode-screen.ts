@@ -7,8 +7,8 @@ import { presentationAvailability, type Presentation } from "./mode-availability
 
 export interface ModeChoice {
   readonly presentation: Presentation;
-  /** Object URL of the 3D snapshot when presentation is "3d", otherwise null. */
-  readonly snapshotUrl: string | null;
+  /** URL of the 3D model when presentation is "3d", otherwise null. */
+  readonly modelUrl: string | null;
   /** The chosen preset id when presentation is "preset", otherwise null. */
   readonly presetId: string | null;
 }
@@ -58,7 +58,6 @@ export function mountModeScreen(
 
   let choice: Presentation = "2d";
   let presetId: string | null = null;
-  let snapshotUrl: string | null = null;
   const card2d = root.querySelector<HTMLButtonElement>("#mode-2d")!;
   const card3d = root.querySelector<HTMLButtonElement>("#mode-3d")!;
   const chips = [...root.querySelectorAll<HTMLButtonElement>(".preset-chip")];
@@ -89,12 +88,6 @@ export function mountModeScreen(
         await loadModelViewer();
         const viewer = createViewer(modelUrl, "Your 3D character");
         slot.append(viewer);
-        viewer.addEventListener("load", async () => {
-          // A snapshot taken at the load event can be black: wait for lit frames to be drawn first.
-          await nextFrames(2);
-          const blob = await (viewer as HTMLElement & { toBlob(o: { mimeType: string }): Promise<Blob> }).toBlob({ mimeType: "image/png" });
-          snapshotUrl = URL.createObjectURL(blob);
-        }, { once: true });
       }
     });
   }
@@ -102,16 +95,8 @@ export function mountModeScreen(
   root.querySelector<HTMLButtonElement>("#start")!.addEventListener("click", () => {
     onStart({
       presentation: choice,
-      snapshotUrl: choice === "3d" ? snapshotUrl : null,
+      modelUrl: choice === "3d" ? modelUrl : null,
       presetId,
     });
-  });
-}
-
-/** Resolves after `count` animation frames, so the browser has drawn them. */
-function nextFrames(count: number): Promise<void> {
-  return new Promise((resolve) => {
-    const step = (remaining: number) => (remaining <= 0 ? resolve() : requestAnimationFrame(() => step(remaining - 1)));
-    step(count);
   });
 }

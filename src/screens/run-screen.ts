@@ -1,11 +1,9 @@
-// Run screen: mounts the game canvas, starts a run, and maps game events to effects (FR-022).
-import { CONFIG } from "../game/config";
+// Run screen: a 3D run. Starts on the first tap or key press, maps game events to feedback (FR-022).
 import type { CharacterMetrics } from "../game/character-metrics";
 import { attachControls } from "../game/controls";
-import { ParticlePool } from "../game/effects/particles";
-import { GameRenderer } from "../game/renderer";
 import { RunSession, type RunEvent } from "../game/run";
 import { startLoop, type LoopHandle } from "../game/loop";
+import { RunScene, type RunnerSource } from "../render/run-scene";
 import { prefersReducedMotion } from "../ui/reduced-motion";
 
 export interface RunHandlers {
@@ -14,7 +12,7 @@ export interface RunHandlers {
 
 export function mountRunScreen(
   root: HTMLElement,
-  sprite: HTMLImageElement,
+  source: RunnerSource,
   metrics: CharacterMetrics,
   handlers: RunHandlers,
 ): () => void {
@@ -30,33 +28,25 @@ export function mountRunScreen(
           <li><kbd>↓</kbd> or swipe down to slide</li>
         </ul>
       </div>
-      <div class="hud"><span id="distance">0</span><button class="button" id="pause" type="button">Pause</button></div>
+      <div class="hud"><span id="distance">0 m</span><button class="button" id="pause" type="button">Pause</button></div>
       <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide.</p>
     </section>`;
   const canvas = root.querySelector<HTMLCanvasElement>("#game")!;
   const distanceEl = root.querySelector<HTMLSpanElement>("#distance")!;
   const pauseBtn = root.querySelector<HTMLButtonElement>("#pause")!;
-  resize(canvas);
+  const cue = root.querySelector<HTMLDivElement>("#cue")!;
 
-  const particles = new ParticlePool(120, { enabled: !reducedMotion });
-  const renderer = new GameRenderer(canvas, { sprite, metrics, reducedMotion });
+  const scene = new RunScene(canvas, metrics, source);
+  const fit = () => scene.resize(canvas.clientWidth || 720, canvas.clientHeight || 1280);
+  fit();
+  window.addEventListener("resize", fit);
+
   let finished = false;
-
   const onEvent = (event: RunEvent) => {
-    const runner = session.runnerState;
-    if (event.type === "land" || event.type === "jump") burst(particles, 6, 0, runner.y);
-    if (event.type === "slide") burst(particles, 3, event.distance, 0);
-    if (event.type === "milestone") {
-      burst(particles, 12, event.distance, 60, "accent");
-      if (!reducedMotion) pulse(distanceEl);
-    }
-    if (event.type === "crash") {
-      burst(particles, 24, event.distance, 40, "accent");
-      finish(session.distance);
-    }
+    if (event.type === "milestone" && !reducedMotion) pulse(distanceEl);
+    if (event.type === "crash") finish(session.distance);
   };
   const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
-  const cue = root.querySelector<HTMLDivElement>("#cue")!;
 
   const controls = attachControls(root, {
     onIntent(intent) {
@@ -85,8 +75,8 @@ export function mountRunScreen(
   }
 
   const loop: LoopHandle = startLoop(session, () => {
-    particles.update(1 / CONFIG.TICK_HZ);
-    renderer.draw(session, particles);
+    scene.sync(session);
+    scene.render();
     distanceEl.textContent = `${Math.floor(session.distance)} m`;
   });
 
@@ -95,6 +85,8 @@ export function mountRunScreen(
     finished = true;
     loop.stop();
     controls();
+    window.removeEventListener("resize", fit);
+    scene.dispose();
     handlers.onEnd(distance);
   }
 
@@ -103,14 +95,10 @@ export function mountRunScreen(
       finished = true;
       loop.stop();
       controls();
+      window.removeEventListener("resize", fit);
+      scene.dispose();
     }
   };
-}
-
-function resize(canvas: HTMLCanvasElement): void {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.round(canvas.clientWidth * dpr) || 720;
-  canvas.height = Math.round(canvas.clientHeight * dpr) || 1280;
 }
 
 /** Brief scale bump on the distance readout when a milestone is passed. Transform only. */
@@ -119,10 +107,4 @@ function pulse(element: HTMLElement): void {
     [{ transform: "scale(1)" }, { transform: "scale(1.14)" }, { transform: "scale(1)" }],
     { duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
   );
-}
-
-function burst(particles: ParticlePool, count: number, x: number, y: number, color: "ink" | "accent" = "ink"): void {
-  for (let i = 0; i < count; i++) {
-    particles.spawn({ x, y, vx: (Math.random() - 0.5) * 300, vy: Math.random() * 260, life: 0.5, color });
-  }
 }

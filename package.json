@@ -21,11 +21,13 @@
   "dependencies": {
     "@google/model-viewer": "^4.4.0",
     "@supabase/supabase-js": "^2.119.2",
-    "heic-to": "^1.6.7"
+    "heic-to": "^1.6.7",
+    "three": "0.183.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
+    "@types/three": "0.183.1",
     "@vitest/coverage-v8": "^5.1.1",
     "eslint": "^10.15.0",
     "jsdom": "^31.0.1",
