@@ -57,7 +57,8 @@ describe("run session", () => {
     const events: string[] = [];
     const run = new RunSession({ seed: 5, metrics: STANDARD, onEvent: (e) => events.push(e.type) });
     run.start();
-    run.advance(10);
+    // With lives, a hands-off run lasts longer than a few seconds, but it still ends.
+    for (let i = 0; i < 120 && run.state === "running"; i++) run.advance(1);
     expect(run.state).toBe("ended");
     expect(events.at(-1)).toBe("crash");
   });

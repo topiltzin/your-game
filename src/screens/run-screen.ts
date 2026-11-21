@@ -30,6 +30,10 @@ export function mountRunScreen(
   root.innerHTML = `
     <section class="run" aria-label="Sketch Runner">
       <canvas id="game" aria-label="Game field"></canvas>
+      <div class="touch-pad" aria-label="On-screen controls">
+        <button class="button touch-button" id="touch-slide" type="button">↓ Slide</button>
+        <button class="button button-primary touch-button" id="touch-jump" type="button">↑ Jump</button>
+      </div>
       <div class="run-cue" id="cue">
         <div class="cue-card">
           <p class="wordmark">Sketch Runner</p>
@@ -46,7 +50,7 @@ export function mountRunScreen(
         <div class="hud-score">
           <span id="distance" class="hud-distance">0 m</span>
           <span class="hud-coins"><span class="coin-dot" aria-hidden="true"></span><span id="coins">0</span></span>
-          <span class="hud-lives" id="lives" role="img" aria-label="${CONFIG.LIVES} lives left">${'<span class="life"></span>'.repeat(CONFIG.LIVES)}</span>
+          <span class="hud-lives" id="lives" role="img" aria-label="${CONFIG.LIVES} lives left">${'<span class="life"></span>'.repeat(CONFIG.MAX_LIVES)}</span>
           ${priorBest > 0 ? `<span class="hud-best">Best ${priorBest} m</span>` : ""}
         </div>
         <button class="button" id="pause" type="button">Pause</button>
@@ -103,19 +107,28 @@ export function mountRunScreen(
       if (!reducedMotion) pulse(distanceEl);
     }
     if (event.type === "coin" && !reducedMotion) pulse(coinsEl);
+    if (event.type === "life") {
+      toast("Extra life!");
+      showLives();
+    }
     if (event.type === "hit") hit();
     if (event.type === "crash") crash();
   };
   const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
 
+  function act(intent: "jump" | "slide") {
+    // The first tap only starts the run, so it never costs a jump the player did not mean.
+    if (session.state === "idle") return beginRun();
+    if (session.state !== "running") return;
+    if (intent === "jump") session.jump();
+    else session.slide();
+  }
+  // The on-screen buttons act the moment they are pressed, not when the finger lifts.
+  root.querySelector("#touch-jump")!.addEventListener("pointerdown", (e) => { e.preventDefault(); act("jump"); });
+  root.querySelector("#touch-slide")!.addEventListener("pointerdown", (e) => { e.preventDefault(); act("slide"); });
+
   const controls = attachControls(root, {
-    onIntent(intent) {
-      // The first tap only starts the run, so it never costs a jump the player did not mean.
-      if (session.state === "idle") return beginRun();
-      if (session.state !== "running") return;
-      if (intent === "jump") session.jump();
-      else session.slide();
-    },
+    onIntent: act,
     onPause() {
       togglePause();
     },
@@ -172,7 +185,11 @@ export function mountRunScreen(
     if (shownLives === session.lives) return;
     shownLives = session.lives;
     livesEl.setAttribute("aria-label", `${session.lives} lives left`);
-    livesEl.querySelectorAll(".life").forEach((dot, i) => dot.classList.toggle("is-lost", i >= session.lives));
+    livesEl.querySelectorAll(".life").forEach((dot, i) => {
+      dot.classList.toggle("is-lost", i >= session.lives);
+      // Slots past the starting lives only show up once a bonus life has filled them.
+      dot.classList.toggle("is-hidden", i >= CONFIG.LIVES && i >= session.lives);
+    });
   }
 
   let crashTimer: number | undefined;
@@ -188,6 +205,7 @@ export function mountRunScreen(
     crashTimer = window.setTimeout(() => finish(session.distance), reducedMotion ? CRASH_BEAT_REDUCED_MS : CRASH_BEAT_MS);
   }
 
+  showLives();
   const loop: LoopHandle = startLoop(session, () => {
     scene.sync(session);
     scene.render();

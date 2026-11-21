@@ -6,7 +6,7 @@ import { createRng, type Rng } from "./rng";
 import { createRunner, requestJump, requestSlide, stepRunner, type RunnerState } from "./physics";
 import { coinsFor, collectCoins, type Coin } from "./coins";
 
-export type RunEventType = "jump" | "land" | "slide" | "hit" | "crash" | "milestone" | "coin";
+export type RunEventType = "jump" | "land" | "slide" | "hit" | "life" | "crash" | "milestone" | "coin";
 export interface RunEvent {
   readonly type: RunEventType;
   readonly distance: number;
@@ -32,6 +32,11 @@ export function speedAt(elapsedSeconds: number): number {
 /** How many milestone thresholds were crossed moving from `prev` to `next` distance. */
 export function milestonesCrossed(prev: number, next: number): number {
   return Math.floor(next / CONFIG.MILESTONE_EVERY) - Math.floor(prev / CONFIG.MILESTONE_EVERY);
+}
+
+/** How many bonus-life marks were crossed moving from `prev` to `next` distance. */
+export function bonusLivesCrossed(prev: number, next: number): number {
+  return Math.floor(next / CONFIG.BONUS_LIFE_EVERY) - Math.floor(prev / CONFIG.BONUS_LIFE_EVERY);
 }
 
 /**
@@ -152,6 +157,13 @@ export class RunSession {
     this.distance += this.speed * DT;
     for (let i = milestonesCrossed(previousDistance, this.distance); i > 0; i--) {
       this.emit("milestone");
+    }
+
+    for (let i = bonusLivesCrossed(previousDistance, this.distance); i > 0; i--) {
+      if (this.lives < CONFIG.MAX_LIVES) {
+        this.lives += 1;
+        this.emit("life");
+      }
     }
 
     this.collectCoinsNow();

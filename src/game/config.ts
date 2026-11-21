@@ -26,8 +26,11 @@ export const CONFIG = Object.freeze({
   MILESTONE_EVERY: 500,
   /** Hits the runner can take before the run ends. */
   LIVES: 3,
+  /** Every this many units of distance earns one extra life, up to MAX_LIVES. */
+  BONUS_LIFE_EVERY: 3000,
+  MAX_LIVES: 5,
   /** Seconds after a hit when obstacles cannot hurt, so one mistake never costs two lives. */
-  INVULN_SECONDS: 1.6,
+  INVULN_SECONDS: 1.2,
   /** A jump pressed this long before landing is remembered and fires on landing. */
   JUMP_BUFFER_SECONDS: 0.15,
 });

@@ -374,6 +374,23 @@ kbd {
   pointer-events: none;
 }
 .run-toast:empty { display: none; }
+/* On-screen Jump and Slide for touch screens. The whole field still jumps on tap and slides on a swipe down. */
+.touch-pad {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 18px;
+  display: none;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (pointer: coarse) {
+  .touch-pad { display: flex; }
+  /* The pad takes the place of the text hint. */
+  .run .hint { display: none; }
+}
+.touch-button { flex: 1; min-height: 64px; font-size: 1.15rem; touch-action: manipulation; }
+
 /* Lives: filled coral dots, spent ones become outlines. */
 .hud-lives { display: flex; gap: 6px; }
 .life {
@@ -385,6 +402,7 @@ kbd {
   transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 .life.is-lost { background: transparent; transform: scale(0.8); }
+.life.is-hidden { display: none; }
 
 /* What the next obstacle needs, shown about a second before it arrives. Jump is coral, slide is ink, so the two never blur. */
 .run-action {

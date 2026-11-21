@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "../../src/game/config";
-import { RunSession, type RunEvent } from "../../src/game/run";
+import { RunSession, bonusLivesCrossed, type RunEvent } from "../../src/game/run";
 import { STANDARD } from "../fixtures/characters";
 
 const DT = 1 / CONFIG.TICK_HZ;
@@ -27,7 +27,8 @@ describe("lives", () => {
   it("survives hits until the lives run out, then ends with one crash", () => {
     const { events, run } = runUntrained(5);
     const hits = events.filter((e) => e.type === "hit").length;
-    expect(hits).toBe(CONFIG.LIVES - 1);
+    const bonus = events.filter((e) => e.type === "life").length;
+    expect(hits).toBe(CONFIG.LIVES - 1 + bonus);
     expect(events.filter((e) => e.type === "crash")).toHaveLength(1);
     expect(run.state).toBe("ended");
     expect(run.lives).toBe(0);
@@ -78,5 +79,33 @@ describe("jump buffer", () => {
     let guard = 0;
     while (run.runnerState.mode === "jumping" && guard++ < 600) run.advance(DT);
     expect(run.runnerState.mode).toBe("standing");
+  });
+});
+
+describe("bonus lives", () => {
+  it("counts one bonus life per BONUS_LIFE_EVERY units crossed", () => {
+    const every = CONFIG.BONUS_LIFE_EVERY;
+    expect(bonusLivesCrossed(every - 10, every + 10)).toBe(1);
+    expect(bonusLivesCrossed(0, every - 1)).toBe(0);
+    expect(bonusLivesCrossed(every - 100, every * 2 + 100)).toBe(2);
+  });
+
+  it("emits a life event and adds a life when the distance crosses the mark", () => {
+    const events: string[] = [];
+    const run = new RunSession({ seed: 1, metrics: STANDARD, onEvent: (e) => events.push(e.type) });
+    run.start();
+    run.lives = 2;
+    run.distance = CONFIG.BONUS_LIFE_EVERY - 0.1;
+    run.advance(DT);
+    expect(events).toContain("life");
+  });
+
+  it("never goes above the maximum", () => {
+    const run = new RunSession({ seed: 1, metrics: STANDARD });
+    run.start();
+    run.lives = CONFIG.MAX_LIVES;
+    run.distance = CONFIG.BONUS_LIFE_EVERY - 0.1;
+    run.advance(DT);
+    expect(run.lives).toBeLessThanOrEqual(CONFIG.MAX_LIVES);
   });
 });
