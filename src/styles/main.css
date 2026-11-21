@@ -1,16 +1,20 @@
-/* Tokens: off-white paper, one dark ink, grey secondary text. Shared by every screen. */
+/* Tokens: cream paper, one near-black ink, one coral accent. Shared by every screen and by the 3D world.
+   Shape rule: cards are 16px, interactive controls are pills, small inset tiles are 10px. */
 :root {
-  --paper: #f7f7f7;
-  --ink: #3c3c3c;
-  --line: #d4d4d4;
-  --accent: #3c3c3c;
-  --accent-depth: #111111;
-  --on-accent: #f7f7f7;
-  --muted: #6b6b6b;
+  --paper: #f6f3ec;
+  --ink: #1b1b1f;
+  --line: #1b1b1f;
+  --accent: #e2432f;
+  --accent-depth: color-mix(in srgb, var(--accent) 62%, #000);
+  /* Ink text on the coral accent clears WCAG AA (about 5.6:1); white does not (about 3.8:1). */
+  --on-accent: #15141a;
+  --muted: #5d5a55;
+  --gold: #f2a51a;
   --radius-card: 16px;
+  --radius-tile: 10px;
   --radius-pill: 999px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  /* No web font is shipped: system sans for titles, system mono for the score. */
+  /* No web font is shipped: system sans for titles, system mono for numbers. */
   --display: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --body: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -19,24 +23,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #1f1f1f;
-    --ink: #ececec;
-    --line: #3d3d3d;
-    --accent: #ececec;
-    --accent-depth: #bdbdbd;
-    --on-accent: #1f1f1f;
-    --muted: #a3a3a3;
+    --paper: #17161a;
+    --ink: #f6f3ec;
+    --line: #f6f3ec;
+    --muted: #b8b4ad;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #1f1f1f;
-  --ink: #ececec;
-  --line: #3d3d3d;
-  --accent: #ececec;
-  --accent-depth: #bdbdbd;
-  --on-accent: #1f1f1f;
-  --muted: #a3a3a3;
+  --paper: #17161a;
+  --ink: #f6f3ec;
+  --line: #f6f3ec;
+  --muted: #b8b4ad;
 }
 
 * { box-sizing: border-box; }
@@ -47,6 +45,9 @@ body {
   margin: 0;
   min-height: 100dvh;
   background-color: var(--paper);
+  /* A soft coral glow in one corner, so the page is not a flat sheet. */
+  background-image: radial-gradient(60rem 36rem at 105% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--body);
 }
@@ -68,51 +69,64 @@ body {
 .panel {
   width: min(520px, 100%);
   display: grid;
-  gap: 16px;
-  padding: 28px 24px;
-  border: 1px solid var(--line);
+  gap: 18px;
+  padding: 28px 24px 30px;
+  border: 2px solid var(--ink);
   border-radius: var(--radius-card);
   background: var(--paper);
+  box-shadow: 7px 7px 0 var(--accent);
 }
 .panel.center { justify-items: center; text-align: center; }
 
 .wordmark {
   margin: 0;
   justify-self: start;
+  padding: 3px 10px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
   font-family: var(--mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .display {
   font-family: var(--display);
-  font-size: clamp(1.9rem, 6vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.1;
+  font-size: clamp(2.1rem, 7vw, 3rem);
+  font-weight: 800;
+  line-height: 1.05;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
+/* Highlighter swipe behind the key phrase of a title. */
+.mark {
+  background: linear-gradient(transparent 50%, color-mix(in srgb, var(--accent) 60%, transparent) 50% 88%, transparent 88%);
+  padding: 0 0.08em;
+}
 .lede, .hint, .message { color: var(--muted); margin: 0; line-height: 1.5; max-width: 60ch; text-wrap: pretty; }
+.message:empty { display: none; }
 .eyebrow {
   margin: 0;
   justify-self: center;
   width: fit-content;
-  padding: 4px 12px;
+  padding: 5px 14px;
+  border: 2px solid var(--ink);
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .score {
   font-family: var(--mono);
-  font-size: clamp(4rem, 16vw, 7rem);
-  font-weight: 700;
+  font-size: clamp(4.5rem, 18vw, 7.5rem);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 0.95;
   animation: score-in 520ms var(--ease-out) both;
@@ -122,19 +136,33 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 .best strong { color: var(--ink); font-family: var(--mono); }
-.unit { font-size: 0.32em; font-weight: 700; margin-left: 0.12em; color: var(--muted); }
+.unit { font-size: 0.3em; font-weight: 700; margin-left: 0.12em; color: var(--muted); }
 
-/* Start cue: a card over the field until the first tap or key press, then fades out. */
+/* Summary: two tiles with the numbers worth chasing. */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(340px, 100%); }
+.stat {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  padding: 12px 10px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-tile);
+}
+.stat-value { font-family: var(--mono); font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-label { color: var(--muted); font-size: 0.85rem; }
+.stat:first-child .stat-value { color: var(--gold); -webkit-text-stroke: 1px var(--ink); paint-order: stroke fill; }
+
+/* Start cue: a framed card over the field until the first tap or key press, then fades out. */
 .run-cue {
   position: absolute;
   inset: 0;
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 24px;
   text-align: center;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  background: color-mix(in srgb, var(--paper) 55%, transparent);
   transition: opacity 220ms var(--ease-out), visibility 0s linear 0s;
 }
 .run-cue.is-hidden {
@@ -142,22 +170,33 @@ body {
   visibility: hidden;
   transition: opacity 220ms var(--ease-out), visibility 0s linear 220ms;
 }
-.run-cue .display { font-size: clamp(1.9rem, 7vw, 2.4rem); }
+.cue-card {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 26px 28px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  box-shadow: 7px 7px 0 var(--accent);
+}
+.run-cue .display { font-size: clamp(2.2rem, 8vw, 3rem); }
 /* Content rises in with a short stagger (30-80 ms between items). The exit is faster than the entrance. */
-.run-cue > * { animation: cue-rise 320ms var(--ease-out) both; }
-.run-cue > :nth-child(2) { animation-delay: 60ms; }
-.run-cue > :nth-child(3) { animation-delay: 120ms; }
+.cue-card > * { animation: cue-rise 320ms var(--ease-out) both; }
+.cue-card > :nth-child(2) { animation-delay: 60ms; }
+.cue-card > :nth-child(3) { animation-delay: 120ms; }
 @keyframes cue-rise {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.controls { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; color: var(--muted); text-align: left; }
+.controls { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; color: var(--muted); text-align: left; }
 kbd {
   font: inherit;
   font-family: var(--mono);
   font-size: 0.85em;
+  font-weight: 700;
   padding: 1px 8px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 6px;
   background: var(--paper);
   color: var(--ink);
@@ -167,105 +206,106 @@ kbd {
 
 .button {
   appearance: none;
-  border: 1px solid var(--line);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-pill);
-  background: transparent;
+  background: var(--paper);
   color: var(--ink);
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   padding: 10px 20px;
   min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  white-space: nowrap;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), background-color 160ms var(--ease-out);
 }
-.button:active:not(:disabled) { transform: scale(0.97); }
-.button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Pressing a button pushes it into its shadow. */
+.button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 .button-primary {
-  min-height: 52px;
-  padding: 14px 28px;
-  font-size: 1.02rem;
-  border-color: var(--accent);
+  min-height: 54px;
+  padding: 14px 30px;
+  font-size: 1.05rem;
+  border-color: var(--ink);
   background: var(--accent);
   color: var(--on-accent);
 }
-.button-primary:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
-.button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.button:focus-visible, .mode-card:focus-visible, .preset-chip:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 
 .draw { display: grid; gap: 12px; justify-items: center; }
 #pad {
   width: min(420px, 100%);
   aspect-ratio: 1;
-  border: 1px dashed var(--muted);
+  border: 2px dashed var(--ink);
   border-radius: var(--radius-card);
   touch-action: none;
   background: #fff;
 }
 
 .preview { display: grid; gap: 12px; justify-items: center; }
-.preview img { max-width: 220px; border-radius: var(--radius-card); border: 1px solid var(--line); background: #fff; }
+.preview img { max-width: 220px; border-radius: var(--radius-card); border: 2px solid var(--ink); background: #fff; }
 .disclosure { display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; color: var(--muted); }
 
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.mode-card {
+.mode-card, .preset-chip {
   display: grid;
-  gap: 8px;
   place-items: center;
-  padding: 14px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-card);
-  background: transparent;
+  background: var(--paper);
   color: var(--ink);
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 220ms var(--ease-out), border-color 160ms var(--ease-out);
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), background-color 160ms var(--ease-out);
 }
-.mode-card img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: 10px; }
-.mode-card.is-selected { border-color: var(--ink); border-width: 2px; }
-.mode-card:active:not(:disabled) { transform: scale(0.98); }
+.mode-card { gap: 8px; padding: 12px; }
+.mode-card img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: var(--radius-tile); }
+.mode-card:active:not(:disabled), .preset-chip:active:not(:disabled) { transform: scale(0.97); }
 .mode-card:disabled { opacity: 0.5; cursor: not-allowed; }
-.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.preset-chip {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-  padding: 10px 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
+/* The chosen hero gets the accent fill and a hard shadow, so the choice is obvious at a glance. */
+.mode-card.is-selected, .preset-chip.is-selected {
+  background: color-mix(in srgb, var(--accent) 22%, var(--paper));
+  box-shadow: 4px 4px 0 var(--accent);
 }
-.preset-chip.is-selected { border-color: var(--ink); border-width: 2px; }
-.preset-chip:active:not(:disabled) { transform: scale(0.97); }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.preset-chip { gap: 6px; padding: 10px 8px; font-size: 0.9rem; }
 .preset-art { display: block; height: 52px; }
 .preset-art canvas { display: block; height: 52px; width: auto; image-rendering: pixelated; }
-.viewer-slot { display: block; width: 100%; height: 140px; }
+.viewer-slot { display: grid; place-items: center; width: 100%; height: 140px; }
+/* Until the 3D preview is opened, the card says what a tap will do instead of showing an empty box. */
+.viewer-slot:empty::before {
+  content: "Tap to preview";
+  padding: 6px 12px;
+  border: 2px dashed var(--muted);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 .viewer { width: 100%; height: 140px; }
 
 .sketch-loader { display: flex; gap: 8px; }
 .sketch-loader span {
-  width: 12px;
-  height: 12px;
-  border: 1.5px solid var(--ink);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ink);
   border-radius: 50%;
+  background: var(--accent);
   animation: bob 900ms var(--ease-out) infinite alternate;
 }
+.sketch-loader span:nth-child(2) { animation-delay: 120ms; }
 .sketch-loader span:nth-child(3) { animation-delay: 240ms; }
 @keyframes bob {
-  from { transform: translateY(0); opacity: 0.5; }
+  from { transform: translateY(0); opacity: 0.6; }
   to { transform: translateY(-8px); opacity: 1; }
 }
 
 .run { position: fixed; inset: 0; overflow: hidden; }
-/* The field fills the whole screen; the HUD, cue and hint are layered on top of it. */
+/* The field fills the whole screen; the HUD, toast, cue and hint are layered on top of it. */
 .run canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-/* The score sits top-right in plain mono, like a retro runner's counter. */
-/* Score card top-left (distance and coins), Pause top-right. */
+/* Score card top-left (distance, coins, best), Pause top-right. */
 .hud {
   position: absolute;
   top: 14px;
@@ -275,20 +315,24 @@ kbd {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  pointer-events: none;
 }
+.hud > * { pointer-events: auto; }
 .hud-score {
   display: grid;
-  gap: 6px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
+  gap: 4px;
+  padding: 10px 16px;
+  border: 2px solid var(--ink);
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--accent);
 }
 .hud-distance {
   font-family: var(--mono);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
   color: var(--ink);
 }
 .hud-coins {
@@ -296,44 +340,77 @@ kbd {
   align-items: center;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
+.hud-best { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
 .coin-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #f2a51a;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, #f2a51a 60%, #000);
+  background: var(--gold);
+  border: 2px solid var(--ink);
 }
-.hud .button { min-height: 34px; padding: 4px 14px; font-size: 0.9rem; background: var(--paper); }
+.hud .button { min-height: 40px; padding: 4px 16px; font-size: 0.95rem; }
+/* A callout for milestones and a new best, high in the field so it never covers the runner. */
+.run-toast {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  padding: 8px 22px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: clamp(1.3rem, 5vw, 1.9rem);
+  font-weight: 800;
+  box-shadow: 4px 4px 0 var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.run-toast:empty { display: none; }
 /* The control hint is useful for the first few seconds, then gets out of the way. */
 .run .hint {
   position: absolute;
-  bottom: 14px;
-  left: 16px;
-  right: 16px;
+  bottom: 16px;
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 6px 14px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  color: var(--ink);
   text-align: center;
   font-family: var(--mono);
   font-size: 0.8rem;
-  letter-spacing: 0.04em;
   pointer-events: none;
-  animation: hint-out 500ms var(--ease-out) 4s forwards;
+  animation: hint-out 500ms var(--ease-out) 5s forwards;
 }
 @keyframes hint-out {
   to { opacity: 0; }
 }
 
+@media (max-width: 480px) {
+  .panel { padding: 22px 18px 24px; box-shadow: 5px 5px 0 var(--accent); }
+  .modes { gap: 10px; }
+  .cue-card { padding: 22px 20px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sketch-loader span { animation: none; }
-  .score, .run-cue > * { animation: none; }
-  .button, .mode-card { transition: none; }
-  .button:active:not(:disabled), .mode-card:active:not(:disabled), .button-primary:active:not(:disabled) { transform: none; }
+  .score, .cue-card > * { animation: none; }
+  .button, .mode-card, .preset-chip { transition: none; }
+  .button:active:not(:disabled), .mode-card:active:not(:disabled), .preset-chip:active:not(:disabled) { transform: none; }
 }
 @media (hover: hover) and (pointer: fine) {
-  .button:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 8%, transparent); }
-  .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 85%, var(--paper)); }
-  .mode-card:hover:not(:disabled) { border-color: var(--ink); }
+  .button:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+  .button:hover:not(:disabled):active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+  .mode-card:hover:not(:disabled), .preset-chip:hover:not(:disabled) { transform: translateY(-2px); }
 }

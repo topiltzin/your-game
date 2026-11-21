@@ -16,8 +16,8 @@ import { presetById, presetMetrics, renderPreset } from "./game/presets";
 
 /** Preset pixel size on the runner sprite, and its colours (the same palette as the stylesheet). */
 const PRESET_SPRITE_CELL = 16;
-const PRESET_INK = "#3c3c3c";
-const PRESET_PAPER = "#f7f7f7";
+const PRESET_INK = "#1b1b1f";
+const PRESET_PAPER = "#f6f3ec";
 const DEFAULT_CHOICE: ModeChoice = { presentation: "2d", modelUrl: null, presetId: null };
 
 const root = document.getElementById("app");

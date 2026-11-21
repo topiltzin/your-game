@@ -3,8 +3,13 @@ import type { CharacterMetrics } from "../game/character-metrics";
 import { attachControls } from "../game/controls";
 import { RunSession, type RunEvent } from "../game/run";
 import { startLoop, type LoopHandle } from "../game/loop";
+import { CONFIG } from "../game/config";
+import { getBest } from "../game/best-score";
 import { RunScene, type RunnerSource } from "../render/run-scene";
 import { prefersReducedMotion } from "../ui/reduced-motion";
+import { localStore } from "../ui/store";
+
+const TOAST_MS = 1500;
 
 export interface RunHandlers {
   onEnd(distance: number, coins: number): void;
@@ -17,24 +22,30 @@ export function mountRunScreen(
   handlers: RunHandlers,
 ): () => void {
   const reducedMotion = prefersReducedMotion();
+  const priorBest = Math.floor(getBest(localStore())?.distance ?? 0);
   root.innerHTML = `
     <section class="run" aria-label="Sketch Runner">
       <canvas id="game" aria-label="Game field"></canvas>
       <div class="run-cue" id="cue">
-        <p class="wordmark">Sketch Runner</p>
-        <p class="display">Ready?</p>
-        <ul class="controls" aria-label="Controls">
-          <li><kbd>Tap</kbd> or <kbd>Space</kbd> to jump</li>
-          <li><kbd>↓</kbd> or swipe down to slide</li>
-        </ul>
+        <div class="cue-card">
+          <p class="wordmark">Sketch Runner</p>
+          <p class="display">Ready?</p>
+          <ul class="controls" aria-label="Controls">
+            <li><kbd>Tap</kbd> or <kbd>Space</kbd> to jump</li>
+            <li><kbd>↓</kbd> or swipe down to slide</li>
+            <li>Jump to grab coins. Slide under the bars.</li>
+          </ul>
+        </div>
       </div>
       <div class="hud">
         <div class="hud-score">
           <span id="distance" class="hud-distance">0 m</span>
           <span class="hud-coins"><span class="coin-dot" aria-hidden="true"></span><span id="coins">0</span></span>
+          ${priorBest > 0 ? `<span class="hud-best">Best ${priorBest} m</span>` : ""}
         </div>
         <button class="button" id="pause" type="button">Pause</button>
       </div>
+      <p class="run-toast" id="toast" role="status" aria-live="polite"></p>
       <p class="hint">Tap or Space to jump. Swipe down or ↓ to slide.</p>
     </section>`;
   const canvas = root.querySelector<HTMLCanvasElement>("#game")!;
@@ -42,6 +53,22 @@ export function mountRunScreen(
   const coinsEl = root.querySelector<HTMLSpanElement>("#coins")!;
   const pauseBtn = root.querySelector<HTMLButtonElement>("#pause")!;
   const cue = root.querySelector<HTMLDivElement>("#cue")!;
+  const toastEl = root.querySelector<HTMLParagraphElement>("#toast")!;
+
+  /** A short callout in the middle-top of the field. Opacity and transform only. */
+  function toast(text: string): void {
+    toastEl.textContent = text;
+    const rise = reducedMotion ? "none" : "translateY(10px) scale(0.96)";
+    toastEl.animate(
+      [
+        { opacity: 0, transform: rise },
+        { opacity: 1, transform: "none", offset: 0.15 },
+        { opacity: 1, transform: "none", offset: 0.75 },
+        { opacity: 0, transform: "none" },
+      ],
+      { duration: TOAST_MS, easing: "cubic-bezier(0.23, 1, 0.32, 1)", fill: "both" },
+    );
+  }
 
   const scene = new RunScene(canvas, metrics, source);
   const fit = () => scene.resize(canvas.clientWidth || 720, canvas.clientHeight || 1280);
@@ -49,8 +76,12 @@ export function mountRunScreen(
   window.addEventListener("resize", fit);
 
   let finished = false;
+  let beatBest = false;
   const onEvent = (event: RunEvent) => {
-    if (event.type === "milestone" && !reducedMotion) pulse(distanceEl);
+    if (event.type === "milestone") {
+      toast(`${Math.floor(event.distance / CONFIG.MILESTONE_EVERY) * CONFIG.MILESTONE_EVERY} m`);
+      if (!reducedMotion) pulse(distanceEl);
+    }
     if (event.type === "coin" && !reducedMotion) pulse(coinsEl);
     if (event.type === "crash") finish(session.distance);
   };
@@ -87,6 +118,10 @@ export function mountRunScreen(
     scene.render();
     distanceEl.textContent = `${Math.floor(session.distance)} m`;
     coinsEl.textContent = String(session.coinsCollected);
+    if (!beatBest && priorBest > 0 && session.distance > priorBest) {
+      beatBest = true;
+      toast("New best!");
+    }
   });
 
   function finish(distance: number) {

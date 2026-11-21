@@ -15,8 +15,8 @@ export interface ModeChoice {
 }
 
 const PREVIEW_CELL = 4;
-const PRESET_INK = "#3c3c3c";
-const PRESET_PAPER = "#f7f7f7";
+const PRESET_INK = "#1b1b1f";
+const PRESET_PAPER = "#f6f3ec";
 
 export function mountModeScreen(
   root: HTMLElement,
