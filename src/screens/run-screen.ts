@@ -46,6 +46,7 @@ export function mountRunScreen(
         <div class="hud-score">
           <span id="distance" class="hud-distance">0 m</span>
           <span class="hud-coins"><span class="coin-dot" aria-hidden="true"></span><span id="coins">0</span></span>
+          <span class="hud-lives" id="lives" role="img" aria-label="${CONFIG.LIVES} lives left">${'<span class="life"></span>'.repeat(CONFIG.LIVES)}</span>
           ${priorBest > 0 ? `<span class="hud-best">Best ${priorBest} m</span>` : ""}
         </div>
         <button class="button" id="pause" type="button">Pause</button>
@@ -64,6 +65,7 @@ export function mountRunScreen(
   const canvas = root.querySelector<HTMLCanvasElement>("#game")!;
   const distanceEl = root.querySelector<HTMLSpanElement>("#distance")!;
   const coinsEl = root.querySelector<HTMLSpanElement>("#coins")!;
+  const livesEl = root.querySelector<HTMLSpanElement>("#lives")!;
   const pauseBtn = root.querySelector<HTMLButtonElement>("#pause")!;
   const cue = root.querySelector<HTMLDivElement>("#cue")!;
   const toastEl = root.querySelector<HTMLParagraphElement>("#toast")!;
@@ -101,6 +103,7 @@ export function mountRunScreen(
       if (!reducedMotion) pulse(distanceEl);
     }
     if (event.type === "coin" && !reducedMotion) pulse(coinsEl);
+    if (event.type === "hit") hit();
     if (event.type === "crash") crash();
   };
   const session = new RunSession({ seed: Date.now() % 100000, metrics, onEvent });
@@ -155,11 +158,29 @@ export function mountRunScreen(
     actionEl.textContent = cue ? (cue.action === "jump" ? "↑ Jump" : "↓ Slide") : "";
   }
 
+  /** Losing a life is a short, loud moment (shake, flash, callout) and then the run goes on. */
+  function hit() {
+    scene.crash();
+    toast(session.lives === 1 ? "Last life!" : `${session.lives} lives left`);
+    if (!reducedMotion) flashEl.animate([{ opacity: 0.4 }, { opacity: 0 }], { duration: 320, easing: "ease-out" });
+    showLives();
+  }
+
+  /** The life dots follow the session; spent lives turn into outlines. */
+  let shownLives = -1;
+  function showLives() {
+    if (shownLives === session.lives) return;
+    shownLives = session.lives;
+    livesEl.setAttribute("aria-label", `${session.lives} lives left`);
+    livesEl.querySelectorAll(".life").forEach((dot, i) => dot.classList.toggle("is-lost", i >= session.lives));
+  }
+
   let crashTimer: number | undefined;
   /** The crash shows for a beat (shake and a flash) before the summary, so the hit reads as the cause. */
   function crash() {
     if (finished || crashTimer !== undefined) return;
     scene.crash();
+    showLives();
     actionEl.textContent = "";
     if (!reducedMotion) {
       flashEl.animate([{ opacity: 0.55 }, { opacity: 0 }], { duration: 380, easing: "ease-out" });

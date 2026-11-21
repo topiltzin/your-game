@@ -374,6 +374,18 @@ kbd {
   pointer-events: none;
 }
 .run-toast:empty { display: none; }
+/* Lives: filled coral dots, spent ones become outlines. */
+.hud-lives { display: flex; gap: 6px; }
+.life {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--accent);
+  transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+.life.is-lost { background: transparent; transform: scale(0.8); }
+
 /* What the next obstacle needs, shown about a second before it arrives. Jump is coral, slide is ink, so the two never blur. */
 .run-action {
   position: absolute;
@@ -469,6 +481,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .sketch-loader span { animation: none; }
   .score, .cue-card > *, .cue-start, .run-action { animation: none; }
+  .life { transition: none; }
   .button, .mode-card, .preset-chip { transition: none; }
   .button:active:not(:disabled), .mode-card:active:not(:disabled), .preset-chip:active:not(:disabled) { transform: none; }
 }

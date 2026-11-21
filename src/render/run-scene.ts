@@ -187,6 +187,8 @@ export class RunScene {
     // Running bobs a little so the hero feels alive; a rising jump stretches, a slide squashes.
     const bob = mode === "standing" && !this.reducedMotion ? Math.abs(Math.sin(session.ticks * RUN_BOB_RATE)) * RUN_BOB : 0;
     this.runner.position.set(0, lift + bob, 0);
+    // After a hit the runner blinks, so the protected moment is visible.
+    this.runner.visible = !(session.invulnerable && !this.reducedMotion && Math.floor(session.ticks / 5) % 2 === 0);
     const stretch = mode === "jumping" && session.runnerState.vy > 0 ? 1.06 : 1;
     this.runner.scale.y = mode === "sliding" ? SLIDE_SCALE : stretch;
 

@@ -13,9 +13,9 @@ Single source for tuning. Values live in `src/game/config.ts`; this document is 
 | `JUMP_VELOCITY` | 980 | Gives a jump apex of about 1.5 average-character heights (keeps jumps short, FR-012) |
 | `SLIDE_DURATION` | 0.65 s | FR-013 fixed short duration |
 | `SLIDE_HEIGHT_FACTOR` | 0.45 | A sliding character is 45% of standing height |
-| `START_SPEED` | 360 | units/s |
+| `START_SPEED` | 300 | units/s |
 | `MAX_SPEED` | 820 | units/s |
-| `SPEED_RAMP_PER_SECOND` | 9 | Gradual increase (FR-018) |
+| `SPEED_RAMP_PER_SECOND` | 6 | Gradual increase (FR-018) |
 | `CHARACTER_HEIGHT_MIN` / `_MAX` | 90 / 260 | Normalized standing height after size cap |
 | `CHARACTER_WIDTH_MIN` / `_MAX` | 60 / 200 | Normalized width after size cap |
 | `CHARACTER_BASE_HEIGHT` | 150 | Height used to scale gap generation to the character |

@@ -6,7 +6,7 @@ import { createRng, type Rng } from "./rng";
 import { createRunner, requestJump, requestSlide, stepRunner, type RunnerState } from "./physics";
 import { coinsFor, collectCoins, type Coin } from "./coins";
 
-export type RunEventType = "jump" | "land" | "slide" | "crash" | "milestone" | "coin";
+export type RunEventType = "jump" | "land" | "slide" | "hit" | "crash" | "milestone" | "coin";
 export interface RunEvent {
   readonly type: RunEventType;
   readonly distance: number;
@@ -43,6 +43,8 @@ export class RunSession {
   distance = 0;
   speed: number = CONFIG.START_SPEED;
   ticks = 0;
+  /** Hits left. The run ends when a hit lands with none to spare. */
+  lives: number = CONFIG.LIVES;
 
   private runner: RunnerState = createRunner();
   private obstacles: Obstacle[] = [];
@@ -50,6 +52,10 @@ export class RunSession {
   private coinTotal = 0;
   private accumulator = 0;
   private elapsed = 0;
+  /** Seconds of protection left after a hit. */
+  private protection = 0;
+  /** Seconds since a jump was pressed in the air, or null when none is waiting. */
+  private bufferedJumpAge: number | null = null;
   private readonly rng: Rng;
   private readonly metrics: CharacterMetrics;
   private readonly onEvent: (event: RunEvent) => void;
@@ -78,6 +84,13 @@ export class RunSession {
     const before = this.runner.mode;
     this.runner = requestJump(this.runner);
     if (before !== "jumping" && this.runner.mode === "jumping") this.emit("jump");
+    // Pressed in the air: remember it, so a press a hair early still counts when the runner lands.
+    else if (before === "jumping") this.bufferedJumpAge = 0;
+  }
+
+  /** True for a moment after a hit, while obstacles cannot hurt. */
+  get invulnerable(): boolean {
+    return this.protection > 0;
   }
 
   slide(): void {
@@ -126,7 +139,14 @@ export class RunSession {
 
     const step = stepRunner(this.runner, DT);
     this.runner = step.state;
-    if (step.landed) this.emit("land");
+    if (step.landed) {
+      this.emit("land");
+      const buffered = this.bufferedJumpAge !== null && this.bufferedJumpAge <= CONFIG.JUMP_BUFFER_SECONDS;
+      this.bufferedJumpAge = null;
+      if (buffered) this.jump();
+    }
+    this.bufferedJumpAge = this.bufferedJumpAge === null ? null : this.bufferedJumpAge + DT;
+    this.protection = Math.max(0, this.protection - DT);
 
     this.speed = speedAt(this.elapsed);
     this.distance += this.speed * DT;
@@ -136,10 +156,7 @@ export class RunSession {
 
     this.collectCoinsNow();
     this.extendObstacles();
-    if (this.hasCollision()) {
-      this.state = "ended";
-      this.emit("crash");
-    }
+    if (this.protection <= 0 && this.hasCollision()) this.takeHit();
   }
 
   /** A coin is taken when the runner's body passes through it, so a clean jump over a gap collects its arc. */
@@ -152,6 +169,18 @@ export class RunSession {
       this.coinTotal += 1;
       this.emit("coin");
     }
+  }
+
+  /** A hit costs a life and grants a protected moment; the last life ends the run. */
+  private takeHit(): void {
+    this.lives -= 1;
+    if (this.lives <= 0) {
+      this.state = "ended";
+      this.emit("crash");
+      return;
+    }
+    this.protection = CONFIG.INVULN_SECONDS;
+    this.emit("hit");
   }
 
   private hasCollision(): boolean {

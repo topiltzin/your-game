@@ -5,9 +5,9 @@ export const CONFIG = Object.freeze({
   JUMP_VELOCITY: 980,
   SLIDE_DURATION: 0.65,
   SLIDE_HEIGHT_FACTOR: 0.45,
-  START_SPEED: 360,
+  START_SPEED: 300,
   MAX_SPEED: 820,
-  SPEED_RAMP_PER_SECOND: 9,
+  SPEED_RAMP_PER_SECOND: 6,
   CHARACTER_HEIGHT_MIN: 90,
   CHARACTER_HEIGHT_MAX: 260,
   CHARACTER_WIDTH_MIN: 60,
@@ -22,6 +22,12 @@ export const CONFIG = Object.freeze({
   CLEAR_HEIGHT: 40,
   MIN_SPACING: 420,
   MAX_SPACING: 760,
-  FIRST_OBSTACLE_X: 600,
+  FIRST_OBSTACLE_X: 1100,
   MILESTONE_EVERY: 500,
+  /** Hits the runner can take before the run ends. */
+  LIVES: 3,
+  /** Seconds after a hit when obstacles cannot hurt, so one mistake never costs two lives. */
+  INVULN_SECONDS: 1.6,
+  /** A jump pressed this long before landing is remembered and fires on landing. */
+  JUMP_BUFFER_SECONDS: 0.15,
 });

@@ -9,9 +9,9 @@ describe("game config", () => {
     expect(CONFIG.JUMP_VELOCITY).toBe(980);
     expect(CONFIG.SLIDE_DURATION).toBe(0.65);
     expect(CONFIG.SLIDE_HEIGHT_FACTOR).toBe(0.45);
-    expect(CONFIG.START_SPEED).toBe(360);
+    expect(CONFIG.START_SPEED).toBe(300);
     expect(CONFIG.MAX_SPEED).toBe(820);
-    expect(CONFIG.SPEED_RAMP_PER_SECOND).toBe(9);
+    expect(CONFIG.SPEED_RAMP_PER_SECOND).toBe(6);
     expect(CONFIG.CHARACTER_HEIGHT_MIN).toBe(90);
     expect(CONFIG.CHARACTER_HEIGHT_MAX).toBe(260);
     expect(CONFIG.CHARACTER_WIDTH_MIN).toBe(60);
